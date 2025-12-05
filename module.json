@@ -1,0 +1,37 @@
+{
+    "id": "niks-show-and-tell",
+    "title": "Nik's Show & Tell",
+    "version": "13.01",
+    "compatibility": {
+        "minimum": "13",
+        "verified": "13"
+    },
+    "authors": [
+        {
+            "name": "nikolai.sw",
+            "flags": {}
+        }
+    ],
+    "relationships": {
+        "systems": [],
+        "requires": [],
+        "flags": {}
+    },
+    "esmodules": [
+        "scripts/init.js"
+    ],
+    "styles": [
+        "styles/main.css"
+    ],
+    "languages": [
+        {
+            "lang": "en",
+            "name": "English",
+            "path": "languages/en.json"
+        }
+    ],
+    "url": "https://github.com/nschoenwald/niks-show-and-tell/",
+    "manifest": "https://github.com/nschoenwald/niks-show-and-tell/releases/latest/download/module.json",
+    "download": "https://github.com/nschoenwald/niks-show-and-tell/releases/latest/download/module.zip",
+    "description": "Adds context menu options to images to share to chat, and allows pasting images directly into chat."
+}

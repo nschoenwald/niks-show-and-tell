@@ -1,0 +1,93 @@
+/* Context Menu Styling */
+.niks-show-and-tell-menu {
+    position: fixed;
+    z-index: 9999;
+    background: url(../../../ui/parchment.jpg) repeat;
+    border: 1px solid var(--color-border-dark);
+    box-shadow: 0 0 10px #000;
+    border-radius: 5px;
+    padding: 5px 0;
+    min-width: 150px;
+}
+
+.niks-show-and-tell-menu .context-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-dark-primary);
+}
+
+.niks-show-and-tell-menu .context-item:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: var(--color-text-dark-primary);
+}
+
+/* Dialog Styling */
+.niks-show-and-tell-dialog .dialog-players {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border-light-2);
+    padding: 5px;
+    margin: 10px 0;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+}
+
+.niks-show-and-tell-dialog .player-row {
+    padding: 2px 0;
+}
+
+.niks-show-and-tell-dialog .player-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.niks-show-and-tell-dialog .preview-image {
+    display: block;
+    max-width: 100%;
+    max-height: 200px;
+    margin: 0 auto 10px auto;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid var(--color-border-light-2);
+    background: url(../../../ui/denim075.png);
+}
+
+.niks-show-and-tell-dialog .caption-input {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* Chat Image Styling */
+.niks-show-and-tell-chat-image {
+    max-width: 100%;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.niks-show-and-tell-chat-image:hover {
+    transform: scale(1.02);
+}
+
+/* Drag Drop Overlay */
+.niks-show-and-tell-drop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2em;
+    pointer-events: none;
+    border: 4px dashed white;
+    border-radius: 8px;
+}
