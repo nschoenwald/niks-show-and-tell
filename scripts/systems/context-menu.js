@@ -60,7 +60,8 @@ export class ContextMenuSystem {
                 name: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.CopyURL"),
                 icon: '<i class="fas fa-link"></i>',
                 callback: (s) => {
-                    game.clipboard.copyPlainText(s);
+                    const absoluteUrl = new URL(s, document.baseURI).href;
+                    game.clipboard.copyPlainText(absoluteUrl);
                     ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied"));
                 }
             }
