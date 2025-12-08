@@ -9,8 +9,32 @@ export class SceneToolsSystem {
     static addTool(controls) {
         if (!ImageShareUtils.canUserShare) return;
 
-        const tiles = controls.find((c) => c.name === "tiles");
-        if (!tiles) return;
+        let tiles;
+
+        // === UNIVERSAL LOOKUP ===
+        // 1. Try Direct Access (Plain Object) - This is what your V13 build uses
+        if (controls.tiles) {
+            tiles = controls.tiles;
+        }
+        // 2. Try Map/Collection (.get) - Used in some other V13 prototypes
+        else if (typeof controls.get === "function") {
+            tiles = controls.get("tiles");
+        } 
+        // 3. Try Array (.find) - Used in V12 and older
+        else if (Array.isArray(controls)) {
+            tiles = controls.find(c => c.name === "tiles");
+        }
+        // 4. "Brute Force" Fallback
+        // If it's an object but not keyed as expected, search values
+        else {
+            tiles = Object.values(controls || {}).find(c => c.name === "tiles");
+        }
+        // ========================
+
+        if (!tiles) {
+            console.warn("NIKS-SHOW-AND-TELL | Could not find 'tiles' layer.");
+            return;
+        }
 
         const toolDef = {
             name: "showurl",
@@ -20,18 +44,21 @@ export class SceneToolsSystem {
             visible: true,
             onClick: async () => {
                 try {
+                    // 1. Try Image Blob (Copy Image)
                     const b64 = await ImageShareUtils.imageFromClipboard();
                     if (b64) {
                         return ClipboardSystem.showPasteMenuForSource({ dataUrl: b64 });
                     }
 
+                    // 2. Try Text URL (Copy Image Link)
                     const src = await navigator.clipboard.readText();
                     if (src) {
-                        ClipboardSystem.showPasteMenuForSource({ dataUrl: src });
+                        return ClipboardSystem.showPasteMenuForSource({ dataUrl: src });
                     } else {
                         ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ClipboardEmpty"));
                     }
                 } catch (err) {
+                    console.error("Paste Error:", err);
                     new foundry.applications.api.DialogV2({
                         window: { title: game.i18n.localize("NIKS-SHOW-AND-TELL.Dialog.PasteImage.Title") },
                         content: game.i18n.localize("NIKS-SHOW-AND-TELL.Dialog.PasteImage.Content"),
@@ -41,7 +68,10 @@ export class SceneToolsSystem {
             }
         };
 
-        // Patching tools array
-        if (Array.isArray(tiles.tools)) tiles.tools.push(toolDef);
+        // Ensure tiles.tools exists and is an array before pushing
+        if (!tiles.tools) tiles.tools = [];
+        if (Array.isArray(tiles.tools)) {
+            tiles.tools.push(toolDef);
+        }
     }
 }
