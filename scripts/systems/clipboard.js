@@ -108,10 +108,11 @@ export class ClipboardSystem {
         } catch { }
         ClipboardSystem.#activeClipboardDialog = null;
 
-        // Updated Content with Caption field
+        // Store dataUrl and name in the preview image's data attributes to avoid closure capture bugs
+        // This ensures the currently displayed image is always the one that gets uploaded
         const content = `
         <div style="text-align: center;">
-            <img src="${dataUrl}" class="preview-image" style="max-height: 250px;">
+            <img src="${dataUrl}" class="preview-image" data-image-url="${dataUrl}" data-image-name="${name || ''}" style="max-height: 250px;">
         </div>
         <div class="form-group">
             <input type="text" class="caption-input" name="caption" placeholder="${game.i18n.localize("NIKS-SHOW-AND-TELL.Dialog.Caption.Placeholder")}">
@@ -128,8 +129,13 @@ export class ClipboardSystem {
                     label: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.UploadShare"),
                     icon: "fas fa-share",
                     callback: async (event, button) => {
+                        // Extract dataUrl from the DOM to avoid stale closure references
+                        const previewImg = button.form.querySelector(".preview-image");
+                        const currentDataUrl = previewImg.dataset.imageUrl;
+                        const currentName = previewImg.dataset.imageName || null;
                         const caption = button.form.querySelector(`[name="caption"]`).value || "";
-                        const path = await ClipboardSystem.uploadAndGetPath({ file, dataUrl, name });
+
+                        const path = await ClipboardSystem.uploadAndGetPath({ dataUrl: currentDataUrl, name: currentName });
                         ChatSystem.toChatWithDialog(path, caption);
                         return true;
                     }
@@ -139,8 +145,13 @@ export class ClipboardSystem {
                     label: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.JournalShare"),
                     icon: "fas fa-book-open",
                     callback: async (event, button) => {
+                        // Extract dataUrl from the DOM to avoid stale closure references
+                        const previewImg = button.form.querySelector(".preview-image");
+                        const currentDataUrl = previewImg.dataset.imageUrl;
+                        const currentName = previewImg.dataset.imageName || null;
                         const caption = button.form.querySelector(`[name="caption"]`).value || "";
-                        const path = await ClipboardSystem.uploadAndGetPath({ file, dataUrl, name });
+
+                        const path = await ClipboardSystem.uploadAndGetPath({ dataUrl: currentDataUrl, name: currentName });
 
                         let journal = game.journal.getName("Image Context");
                         if (!journal) journal = await JournalEntry.create({ name: "Image Context" });
@@ -161,13 +172,12 @@ export class ClipboardSystem {
         dialog.render(true);
     }
 
-    static async uploadAndGetPath({ file, dataUrl, name } = {}) {
-        if (!file && dataUrl) {
-            const blob = await ImageShareUtils.blobFromDataURL(dataUrl);
-            const ext = ImageShareUtils.extFromMime(blob.type || "image/png");
-            const filename = name || `image-${foundry.utils.randomID()}.${ext}`;
-            file = new File([blob], filename, { type: blob.type || "image/png" });
-        }
+    static async uploadAndGetPath({ dataUrl, name } = {}) {
+        // Always reconstruct file from dataUrl to ensure we upload exactly what's displayed
+        const blob = await ImageShareUtils.blobFromDataURL(dataUrl);
+        const ext = ImageShareUtils.extFromMime(blob.type || "image/png");
+        const filename = name || `image-${foundry.utils.randomID()}.${ext}`;
+        const file = new File([blob], filename, { type: blob.type || "image/png" });
 
         const targetFolder = ImageShareUtils.uploadLocation;
         const source = "data";
