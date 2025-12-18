@@ -141,7 +141,8 @@ export class ChatSystem {
         if (!content) return;
 
         const imgExts = "jpg|jpeg|png|gif|svg|webp";
-        const urlRegex = new RegExp(`(https?:\\/\\/[^\\s"']+\\.(${imgExts})[^\\s"']*)`, "gi");
+        // Stricter regex to ensure we match full URLs starting with http(s)
+        const urlRegex = new RegExp(`(https?:\\/\\/[^\\s"']+\\.(${imgExts}))`, "gi");
 
         if (!urlRegex.test(content)) return;
 

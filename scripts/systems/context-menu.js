@@ -8,6 +8,9 @@ export class ContextMenuSystem {
             if (!ImageShareUtils.canUserShare) return;
             const tgt = event.target;
             if (tgt && tgt.tagName === "IMG") {
+                // Ignore Token HUD (status effects), Sidebar, and Buttons
+                if (tgt.closest("#token-hud") || tgt.closest("#sidebar") || tgt.closest("button")) return;
+
                 event.preventDefault();
                 ContextMenuSystem.showContextMenu(event);
             }
@@ -70,8 +73,8 @@ export class ContextMenuSystem {
 
 
         // Tile targeting logic
-        if (canvas.ready) {
-            const targetTiles = canvas.scene?.tiles.filter((t) => t.getFlag(MODULE_ID, "targetName")) ?? [];
+        if (canvas.ready && canvas.scene?.tiles.size > 0) {
+            const targetTiles = canvas.scene.tiles.filter((t) => t.getFlag(MODULE_ID, "targetName")) ?? [];
             for (const tile of targetTiles) {
                 const targetName = tile.getFlag(MODULE_ID, "targetName");
                 buttons.push({
@@ -89,7 +92,7 @@ export class ContextMenuSystem {
         // OPTIMIZATION: Use loadTexture to get dimensions
         let width, height;
         try {
-            const texture = await loadTexture(src);
+            const texture = await TextureLoader.loader.loadTexture(src);
             width = texture.width;
             height = texture.height;
         } catch (e) {

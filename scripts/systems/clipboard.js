@@ -129,13 +129,8 @@ export class ClipboardSystem {
                     label: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.UploadShare"),
                     icon: "fas fa-share",
                     callback: async (event, button) => {
-                        // Extract dataUrl from the DOM to avoid stale closure references
-                        const previewImg = button.form.querySelector(".preview-image");
-                        const currentDataUrl = previewImg.dataset.imageUrl;
-                        const currentName = previewImg.dataset.imageName || null;
                         const caption = button.form.querySelector(`[name="caption"]`).value || "";
-
-                        const path = await ClipboardSystem.uploadAndGetPath({ dataUrl: currentDataUrl, name: currentName });
+                        const path = await ClipboardSystem.uploadAndGetPath({ file, dataUrl, name });
                         ChatSystem.toChatWithDialog(path, caption);
                         return true;
                     }
@@ -145,13 +140,8 @@ export class ClipboardSystem {
                     label: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.JournalShare"),
                     icon: "fas fa-book-open",
                     callback: async (event, button) => {
-                        // Extract dataUrl from the DOM to avoid stale closure references
-                        const previewImg = button.form.querySelector(".preview-image");
-                        const currentDataUrl = previewImg.dataset.imageUrl;
-                        const currentName = previewImg.dataset.imageName || null;
                         const caption = button.form.querySelector(`[name="caption"]`).value || "";
-
-                        const path = await ClipboardSystem.uploadAndGetPath({ dataUrl: currentDataUrl, name: currentName });
+                        const path = await ClipboardSystem.uploadAndGetPath({ file, dataUrl, name });
 
                         let journal = game.journal.getName("Image Context");
                         if (!journal) journal = await JournalEntry.create({ name: "Image Context" });
@@ -172,13 +162,24 @@ export class ClipboardSystem {
         dialog.render(true);
     }
 
-    static async uploadAndGetPath({ dataUrl, name } = {}) {
-        // Always reconstruct file from dataUrl to ensure we upload exactly what's displayed
-        const blob = await ImageShareUtils.blobFromDataURL(dataUrl);
+    static async uploadAndGetPath({ file, dataUrl, name } = {}) {
+        // Reconstruct or use existing file
+        let blob;
+        if (file) {
+            blob = file;
+        } else {
+            blob = await ImageShareUtils.blobFromDataURL(dataUrl);
+        }
+
+        // Determine extension and filename
         const ext = ImageShareUtils.extFromMime(blob.type || "image/png");
         const filename = name || `image-${foundry.utils.randomID()}.${ext}`;
-        const file = new File([blob], filename, { type: blob.type || "image/png" });
 
+        // Ensure it's a File object (if it was just a raw blob from DataURL)
+        if (!(blob instanceof File)) {
+            blob = new File([blob], filename, { type: blob.type || "image/png" });
+        }
+        const fileToUpload = blob;
         const targetFolder = ImageShareUtils.uploadLocation;
         const source = "data";
 
@@ -189,7 +190,7 @@ export class ClipboardSystem {
             await foundry.applications.apps.FilePicker.createDirectory(source, targetFolder);
         }
 
-        const uploaded = await foundry.applications.apps.FilePicker.upload(source, targetFolder, file);
+        const uploaded = await foundry.applications.apps.FilePicker.upload(source, targetFolder, fileToUpload);
         return uploaded.path;
     }
 }

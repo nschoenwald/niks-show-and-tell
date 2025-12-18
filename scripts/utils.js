@@ -25,7 +25,6 @@ export class ImageShareUtils {
 
     static async compressImage(fileOrBlob) {
         const quality = game.settings.get(MODULE_ID, SETTINGS.WEBP_QUALITY) || 0.8;
-        console.log(`Nik's Show & Tell | Compressing to WebP (Q=${quality})...`);
 
         // Create a bitmap from the source
         const bitmap = await createImageBitmap(fileOrBlob);
@@ -40,7 +39,6 @@ export class ImageShareUtils {
         // Convert to blob
         return new Promise((resolve) => {
             canvas.toBlob((blob) => {
-                console.log(`Nik's Show & Tell | Compressed: ${fileOrBlob.size} -> ${blob.size} bytes`);
                 resolve(blob);
             }, "image/webp", quality);
         });
@@ -57,6 +55,10 @@ export class ImageShareUtils {
 
     static async blobToDataURL(blob) {
         return ImageShareUtils.fileToDataURL(new File([blob], "clipboard", { type: blob.type || "application/octet-stream" }));
+    }
+
+    static async blobFromDataURL(dataURL) {
+        return await (await fetch(dataURL)).blob();
     }
 
     static async imageFromClipboard() {

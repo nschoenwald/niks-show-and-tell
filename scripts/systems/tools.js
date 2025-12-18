@@ -9,32 +9,8 @@ export class SceneToolsSystem {
     static addTool(controls) {
         if (!ImageShareUtils.canUserShare) return;
 
-        let tiles;
-
-        // === UNIVERSAL LOOKUP ===
-        // 1. Try Direct Access (Plain Object) - This is what your V13 build uses
-        if (controls.tiles) {
-            tiles = controls.tiles;
-        }
-        // 2. Try Map/Collection (.get) - Used in some other V13 prototypes
-        else if (typeof controls.get === "function") {
-            tiles = controls.get("tiles");
-        } 
-        // 3. Try Array (.find) - Used in V12 and older
-        else if (Array.isArray(controls)) {
-            tiles = controls.find(c => c.name === "tiles");
-        }
-        // 4. "Brute Force" Fallback
-        // If it's an object but not keyed as expected, search values
-        else {
-            tiles = Object.values(controls || {}).find(c => c.name === "tiles");
-        }
-        // ========================
-
-        if (!tiles) {
-            console.warn("NIKS-SHOW-AND-TELL | Could not find 'tiles' layer.");
-            return;
-        }
+        const tiles = controls.find(c => c.name === "tiles");
+        if (!tiles) return;
 
         const toolDef = {
             name: "showurl",
@@ -51,12 +27,21 @@ export class SceneToolsSystem {
                     }
 
                     // 2. Try Text URL (Copy Image Link)
-                    const src = await navigator.clipboard.readText();
-                    if (src) {
-                        return ClipboardSystem.showPasteMenuForSource({ dataUrl: src });
-                    } else {
-                        ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ClipboardEmpty"));
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        // Validate it looks like a URL or file path before opening dialog
+                        // Simple check: starts with http/https or file: or has an image extension
+                        const isUrl = /^https?:\/\//i.test(text);
+                        const isFile = /^file:\/\//i.test(text);
+                        const hasImgExt = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(text);
+
+                        if (isUrl || isFile || hasImgExt) {
+                            return ClipboardSystem.showPasteMenuForSource({ dataUrl: text });
+                        }
                     }
+
+                    ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ClipboardEmpty"));
+
                 } catch (err) {
                     console.error("Paste Error:", err);
                     new foundry.applications.api.DialogV2({
