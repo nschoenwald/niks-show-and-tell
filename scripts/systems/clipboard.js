@@ -171,15 +171,31 @@ export class ClipboardSystem {
             blob = await ImageShareUtils.blobFromDataURL(dataUrl);
         }
 
-        // Determine extension and filename
+        // Determine extension and base filename
         const ext = ImageShareUtils.extFromMime(blob.type || "image/png");
-        const filename = name || `image-${foundry.utils.randomID()}.${ext}`;
-
-        // Ensure it's a File object (if it was just a raw blob from DataURL)
-        if (!(blob instanceof File)) {
-            blob = new File([blob], filename, { type: blob.type || "image/png" });
+        let baseName = name;
+        if (!baseName) {
+            if (blob instanceof File) {
+                baseName = blob.name;
+            } else {
+                baseName = `image-${foundry.utils.randomID()}.${ext}`;
+            }
         }
-        const fileToUpload = blob;
+
+        // Generate Timestamp YYYYMMDDHHMMSS
+        const now = new Date();
+        const timestamp =
+            now.getFullYear().toString() +
+            (now.getMonth() + 1).toString().padStart(2, '0') +
+            now.getDate().toString().padStart(2, '0') +
+            now.getHours().toString().padStart(2, '0') +
+            now.getMinutes().toString().padStart(2, '0') +
+            now.getSeconds().toString().padStart(2, '0');
+
+        const filename = `${timestamp}-${baseName}`;
+
+        // Always create a new File object to ensure the name is correct
+        const fileToUpload = new File([blob], filename, { type: blob.type || "image/png" });
         const targetFolder = ImageShareUtils.uploadLocation;
         const source = "data";
 
