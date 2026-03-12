@@ -87,7 +87,12 @@ export class ClipboardSystem {
                 // Compress!
                 try {
                     const compressedBlob = await ImageShareUtils.compressImage(file);
-                    const newName = file.name.includes(".") ? file.name.replace(/\.[^.]+$/, ".webp") : `${file.name}.webp`;
+                    let newName = file.name;
+                    if (newName.includes(".")) {
+                        newName = newName.replace(/\.[^.]+$/, ".webp");
+                    } else {
+                        newName += ".webp";
+                    }
                     file = new File([compressedBlob], newName, { type: "image/webp" });
                 } catch (e) {
                     console.error("Compression failed, using original:", e);
@@ -176,14 +181,16 @@ export class ClipboardSystem {
         const ext = ImageShareUtils.extFromMime(blob.type || "image/png");
         let baseName = name;
         if (!baseName) {
-            if (blob instanceof File) {
+            if (blob instanceof File && blob.name) {
                 baseName = blob.name;
             } else {
                 baseName = `image-${foundry.utils.randomID()}.${ext}`;
             }
         }
-        if (!baseName.includes(".")) {
-            baseName = `${baseName}.${ext}`;
+
+        // Ensure baseName has an extension
+        if (!baseName.includes('.')) {
+            baseName += `.${ext}`;
         }
 
         // Generate Timestamp YYYYMMDDHHMMSS

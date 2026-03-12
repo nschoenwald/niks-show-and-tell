@@ -1,7 +1,7 @@
 {
     "id": "niks-show-and-tell",
     "title": "Nik's Show & Tell",
-    "version": "13.07",
+    "version": "13.08",
     "compatibility": {
         "minimum": "13",
         "verified": "13"
@@ -32,6 +32,6 @@
     ],
     "url": "https://github.com/nschoenwald/niks-show-and-tell/",
     "manifest": "https://github.com/nschoenwald/niks-show-and-tell/releases/latest/download/module.json",
-    "download": "https://github.com/nschoenwald/niks-show-and-tell/releases/download/13.07/module.zip",
+    "download": "https://github.com/nschoenwald/niks-show-and-tell/releases/download/13.08/module.zip",
     "description": "Adds context menu options to images to share to chat, and allows pasting images directly into chat."
 }
