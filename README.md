@@ -23,13 +23,10 @@ Right-click on any image in a Journal Entry or Image Popout to access the Show &
 *   **Automatic Compression**: Large images are automatically compressed to **WebP** client-side before uploading, saving server space and bandwidth.
 *   **Smart Previews**: The sharing dialog shows a thumbnail of the image you are about to send.
 *   **Captions**: Add flavor text or descriptions to your images directly in the share dialog.
-*   **Scene Tools**: A "Show Copied URL" tool in the Tile Controls for mouse-only users.
 
 ## Usage
 
 1.  **From Journals**: Right-click an image -> "Send to Chat". Select "Show to All" or whisper specific players.
-2.  **From Desktop**: Drag a file onto the chat box. Add a caption and hit Share.
-3.  **From Web**: Copy an image or its URL. Focus Foundry. Press `Ctrl+V`.
 
 ## Settings
 

@@ -14,6 +14,3 @@ Hooks.once("ready", () => {
     ContextMenuSystem.init();
 });
 
-Hooks.on("renderTileConfig", (app, html) => {
-    ContextMenuSystem.renderTileConfig(app, html);
-});

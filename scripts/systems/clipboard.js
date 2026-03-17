@@ -141,26 +141,6 @@ export class ClipboardSystem {
                         return true;
                     }
                 },
-                {
-                    action: "journalShare",
-                    label: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.JournalShare"),
-                    icon: "fas fa-book-open",
-                    callback: async (event, button) => {
-                        const caption = button.form.querySelector(`[name="caption"]`).value || "";
-                        const path = await ClipboardSystem.uploadAndGetPath({ file, dataUrl, name });
-
-                        let journal = game.journal.getName("Image Context");
-                        if (!journal) journal = await JournalEntry.create({ name: "Image Context" });
-
-                        await journal.createEmbeddedDocuments("JournalEntryPage", [
-                            { name: caption || `image-${foundry.utils.randomID()}`, type: "image", src: path, image: { caption } }
-                        ]);
-                        await journal.sheet.render(true);
-
-                        ChatSystem.toChatWithDialog(path, caption);
-                        return true;
-                    }
-                }
             ]
         });
 

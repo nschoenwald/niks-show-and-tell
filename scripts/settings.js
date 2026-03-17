@@ -2,7 +2,6 @@ export const MODULE_ID = "niks-show-and-tell";
 
 export const SETTINGS = {
     ADVANCED_TO_CHAT: "advancedToChat",
-    PRESERVE_DIMENSION: "preserveDimension",
     UPLOAD_LOCATION: "uploadLocation",
     MIN_ROLE: "minRole",
     WEBP_QUALITY: "webpQuality",
@@ -19,18 +18,6 @@ export function registerSettings() {
         default: true
     });
 
-    game.settings.register(MODULE_ID, SETTINGS.PRESERVE_DIMENSION, {
-        name: "NIKS-SHOW-AND-TELL.Settings.PreserveDimension.Name",
-        hint: "NIKS-SHOW-AND-TELL.Settings.PreserveDimension.Hint",
-        scope: "world",
-        config: true,
-        type: String,
-        choices: {
-            width: "NIKS-SHOW-AND-TELL.Settings.PreserveDimension.Width",
-            height: "NIKS-SHOW-AND-TELL.Settings.PreserveDimension.Height"
-        },
-        default: "width"
-    });
 
     game.settings.register(MODULE_ID, SETTINGS.UPLOAD_LOCATION, {
         name: "NIKS-SHOW-AND-TELL.Settings.UploadLocation.Name",
