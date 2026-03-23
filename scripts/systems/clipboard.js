@@ -2,6 +2,8 @@ import { ImageShareUtils } from "../utils.js";
 import { ChatSystem } from "./chat.js";
 import { MODULE_ID, SETTINGS } from "../settings.js";
 
+const MODULE_SHORT = "niks-show-and-tell";
+
 export class ClipboardSystem {
     static #pasteInstalled = false;
     static #activeClipboardDialog = null;
@@ -19,11 +21,38 @@ export class ClipboardSystem {
         const chatLog = document.getElementById("chat-log");
         const chatMsg = document.getElementById("chat-message");
 
-        // Simple drag feedback could go here, but for now just drop logic
         const handleDrop = (e) => ClipboardSystem.onPaste(e);
 
-        if (chatLog) chatLog.addEventListener("drop", handleDrop);
-        if (chatMsg) chatMsg.addEventListener("drop", handleDrop);
+        // Install drop + drag visual overlay on both targets
+        [chatLog, chatMsg].filter(Boolean).forEach((el) => {
+            el.addEventListener("drop", (e) => {
+                ClipboardSystem.#removeDropOverlay(el);
+                handleDrop(e);
+            });
+            el.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                ClipboardSystem.#showDropOverlay(el);
+            });
+            el.addEventListener("dragleave", (e) => {
+                // Only remove if we've actually left the element
+                if (!el.contains(e.relatedTarget)) {
+                    ClipboardSystem.#removeDropOverlay(el);
+                }
+            });
+        });
+    }
+
+    static #showDropOverlay(el) {
+        if (el.querySelector(`.${MODULE_SHORT}-drop-overlay`)) return;
+        el.style.position = el.style.position || "relative";
+        const overlay = document.createElement("div");
+        overlay.className = `${MODULE_SHORT}-drop-overlay`;
+        overlay.textContent = game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.DragDropHint");
+        el.appendChild(overlay);
+    }
+
+    static #removeDropOverlay(el) {
+        el.querySelectorAll(`.${MODULE_SHORT}-drop-overlay`).forEach((o) => o.remove());
     }
 
     static installPasteHandler() {
@@ -114,14 +143,14 @@ export class ClipboardSystem {
         } catch { }
         ClipboardSystem.#activeClipboardDialog = null;
 
-        // Store dataUrl and name in the preview image's data attributes to avoid closure capture bugs
-        // This ensures the currently displayed image is always the one that gets uploaded
+        const safeName = ImageShareUtils.escapeAttr(name || "");
+        const safeDataUrl = ImageShareUtils.escapeAttr(dataUrl);
         const content = `
         <div style="text-align: center;">
-            <img src="${dataUrl}" class="preview-image" data-image-url="${dataUrl}" data-image-name="${name || ''}" style="max-height: 250px;">
+            <img src="${safeDataUrl}" class="preview-image" data-image-url="${safeDataUrl}" data-image-name="${safeName}" style="max-height: 250px;">
         </div>
         <div class="form-group">
-            <input type="text" class="caption-input" name="caption" placeholder="${game.i18n.localize("NIKS-SHOW-AND-TELL.Dialog.Caption.Placeholder")}">
+            <input type="text" class="caption-input" name="caption" placeholder="${ImageShareUtils.escapeAttr(game.i18n.localize("NIKS-SHOW-AND-TELL.Dialog.Caption.Placeholder"))}">
         </div>
     `;
 
@@ -190,14 +219,26 @@ export class ClipboardSystem {
         const targetFolder = ImageShareUtils.uploadLocation;
         const source = "data";
 
-        // Ensure directory exists
+        // Ensure directory tree exists (create parent folders recursively)
         try {
             await foundry.applications.apps.FilePicker.browse(source, targetFolder);
         } catch {
-            await foundry.applications.apps.FilePicker.createDirectory(source, targetFolder);
+            const parts = targetFolder.split("/").filter(Boolean);
+            let current = "";
+            for (const part of parts) {
+                current = current ? `${current}/${part}` : part;
+                try {
+                    await foundry.applications.apps.FilePicker.browse(source, current);
+                } catch {
+                    await foundry.applications.apps.FilePicker.createDirectory(source, current);
+                }
+            }
         }
 
         const uploaded = await foundry.applications.apps.FilePicker.upload(source, targetFolder, fileToUpload);
+        if (!uploaded?.path) {
+            throw new Error(`${MODULE_SHORT} | Upload failed — server returned no path`);
+        }
         return uploaded.path;
     }
 }

@@ -23,6 +23,7 @@
     "NIKS-SHOW-AND-TELL.Settings.WebPQuality.Hint": "Quality of converted images (0.1 to 1.0). Lower is smaller file size.",
     "NIKS-SHOW-AND-TELL.Settings.EnableDragDrop.Name": "Enable Drag & Drop",
     "NIKS-SHOW-AND-TELL.Settings.EnableDragDrop.Hint": "Allow dragging images onto the Chat Log to share them.",
+    "NIKS-SHOW-AND-TELL.Dialog.SendImageTo": "Send Image to:",
     "NIKS-SHOW-AND-TELL.Dialog.Caption.Label": "Caption",
     "NIKS-SHOW-AND-TELL.Dialog.Caption.Placeholder": "Optional flavor text...",
     "NIKS-SHOW-AND-TELL.Notifications.DragDropHint": "Drop image to share!"

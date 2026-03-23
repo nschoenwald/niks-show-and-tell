@@ -42,9 +42,17 @@ export class ContextMenuSystem {
             contextmenu.appendChild(el);
         });
 
-        contextmenu.style.top = `${event.clientY}px`;
-        contextmenu.style.left = `${event.clientX}px`;
+        // Temporarily place off-screen to measure dimensions
+        contextmenu.style.visibility = "hidden";
         document.body.appendChild(contextmenu);
+
+        // Clamp position to keep menu within viewport
+        const rect = contextmenu.getBoundingClientRect();
+        const maxX = window.innerWidth - rect.width - 4;
+        const maxY = window.innerHeight - rect.height - 4;
+        contextmenu.style.top = `${Math.min(event.clientY, Math.max(0, maxY))}px`;
+        contextmenu.style.left = `${Math.min(event.clientX, Math.max(0, maxX))}px`;
+        contextmenu.style.visibility = "";
     }
 
     static getButtons(src) {

@@ -70,15 +70,18 @@ export class ChatSystem {
     }
 
     static formatImageHtml(src, caption = "") {
-        let html = `<img class="niks-show-and-tell-chat-image" data-src="${src}" src="${src}">`;
+        const safeSrc = ImageShareUtils.escapeAttr(src);
+        let html = `<img class="niks-show-and-tell-chat-image" data-src="${safeSrc}" src="${safeSrc}">`;
         if (caption) {
-            html += `<p class="niks-show-and-tell-caption" style="text-align: center; font-style: italic; margin-top: 5px;">${caption}</p>`;
+            const safeCaption = ImageShareUtils.escapeAttr(caption);
+            html += `<p class="niks-show-and-tell-caption" style="text-align: center; font-style: italic; margin-top: 5px;">${safeCaption}</p>`;
         }
         return html;
     }
 
     static getDialogContentHTML(src, caption = "") {
-        const players = game.users.players;
+        // Include all users (not just players) so GMs can whisper to other GMs
+        const players = game.users.filter(u => u.id !== game.user.id);
 
         const container = document.createElement("div");
         container.className = "niks-show-and-tell-dialog";
@@ -102,7 +105,7 @@ export class ChatSystem {
         container.appendChild(captionGroup);
 
         const header = document.createElement("div");
-        header.innerHTML = "<strong>Send Image to:</strong>";
+        header.innerHTML = `<strong>${ImageShareUtils.escapeAttr(game.i18n.localize("NIKS-SHOW-AND-TELL.Dialog.SendImageTo"))}</strong>`;
         container.appendChild(header);
 
         const playerContainer = document.createElement("div");
@@ -141,15 +144,17 @@ export class ChatSystem {
         if (!content) return;
 
         const imgExts = "jpg|jpeg|png|gif|svg|webp";
-        // Stricter regex to ensure we match full URLs starting with http(s)
-        const urlRegex = new RegExp(`(https?:\\/\\/[^\\s"']+\\.(${imgExts}))`, "gi");
+        const urlPattern = `(https?:\\/\\/[^\\s"']+\\.(${imgExts}))`;
 
-        if (!urlRegex.test(content)) return;
+        // Use a non-global regex for the initial test to avoid lastIndex issues
+        if (!new RegExp(urlPattern, "i").test(content)) return;
 
         let modified = false;
-        const newContent = content.replace(urlRegex, (match) => {
-            // Avoid double wrapping
-            if (content.includes(`"${match}"`) || content.includes(`'${match}'`)) return match;
+        const newContent = content.replace(new RegExp(urlPattern, "gi"), (match, _url, _ext, offset) => {
+            // Avoid double-wrapping: check the character immediately before & after the match
+            const charBefore = offset > 0 ? content[offset - 1] : "";
+            const charAfter = content[offset + match.length] || "";
+            if ((charBefore === '"' && charAfter === '"') || (charBefore === "'" && charAfter === "'")) return match;
 
             modified = true;
             return ChatSystem.formatImageHtml(match);

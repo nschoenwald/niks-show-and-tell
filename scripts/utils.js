@@ -6,6 +6,14 @@ export class ImageShareUtils {
         return game.user.role >= minRole;
     }
 
+    /**
+     * Escape a string for safe insertion into an HTML attribute value.
+     */
+    static escapeAttr(str) {
+        if (!str) return "";
+        return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
     static get uploadLocation() {
         let dir = game.settings.get(MODULE_ID, SETTINGS.UPLOAD_LOCATION)?.trim() || "niks-show-and-tell-uploads";
         return this.#normalizeUploadFolder(dir);
@@ -15,8 +23,8 @@ export class ImageShareUtils {
         if (/^[a-z]+:\/\//i.test(dir)) dir = "niks-show-and-tell-uploads";
         if (!dir.includes("/")) dir = `worlds/${game.world.id}/${dir}`;
 
-        // v13: Enforce strict user data paths to avoid security issues
-        const badRoots = /^(modules|systems)\/|^worlds\/?$|^worlds\/[^/]+$/i;
+        // Enforce strict user data paths — block any path under modules/ or systems/
+        const badRoots = /^(modules|systems)(\/|$)|^worlds\/?$|^worlds\/[^/]+$/i;
         if (badRoots.test(dir)) {
             dir = `worlds/${game.world.id}/niks-show-and-tell-uploads`;
         }
@@ -37,8 +45,9 @@ export class ImageShareUtils {
         ctx.drawImage(bitmap, 0, 0);
 
         // Convert to blob
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             canvas.toBlob((blob) => {
+                if (!blob) return reject(new Error("WebP conversion returned null"));
                 resolve(blob);
             }, "image/webp", quality);
         });
@@ -84,9 +93,11 @@ export class ImageShareUtils {
 
     static extFromMime(mime) {
         if (!mime?.includes("/")) return "png";
-        const ext = mime.split("/")[1]?.toLowerCase();
+        let ext = mime.split("/")[1]?.toLowerCase();
+        // Strip structured syntax suffix (e.g. svg+xml → svg)
+        if (ext?.includes("+")) ext = ext.split("+")[0];
         // Prefer jpg for jpeg, otherwise standard.
         if (ext === "jpeg") return "jpg";
-        return ext;
+        return ext || "png";
     }
 }

@@ -1,7 +1,7 @@
 # Nik's Show & Tell
 
-![Foundry v13](https://img.shields.io/badge/foundry-v13-orange)
-![Latest Release](https://img.shields.io/badge/release-v13.01-blue)
+![Foundry v13+](https://img.shields.io/badge/foundry-v13%2B-orange)
+![Latest Release](https://img.shields.io/badge/release-v13.09-blue)
 
 **Nik's Show & Tell** is a module for Foundry VTT that makes sharing images with your players seamless and effortless. Whether it's a handout in a journal, a random image from the web, or a file on your computer, sharing it is just a click or a paste away.
 
