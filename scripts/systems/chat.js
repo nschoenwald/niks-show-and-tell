@@ -12,7 +12,7 @@ export class ChatSystem {
             if (tgt.classList.contains("niks-show-and-tell-chat-image")) {
                 const src = tgt.dataset.src || tgt.getAttribute("src");
                 if (src) {
-                    new foundry.applications.apps.ImagePopout({ src, shareable: ImageShareUtils.canUserShare }).render(true);
+                    new foundry.applications.apps.ImagePopout({ src }).render(true);
                 }
             }
         });

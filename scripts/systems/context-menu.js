@@ -60,7 +60,7 @@ export class ContextMenuSystem {
             {
                 name: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.Show"),
                 icon: '<i class="fas fa-eye"></i>',
-                callback: (s) => new foundry.applications.apps.ImagePopout({ src: s, shareable: true }).render(true)
+                callback: (s) => new foundry.applications.apps.ImagePopout({ src: s }).render(true)
             },
             {
                 name: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.SendToChat"),
@@ -75,10 +75,57 @@ export class ContextMenuSystem {
                     game.clipboard.copyPlainText(absoluteUrl);
                     ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied"));
                 }
+            },
+            {
+                name: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.CopyImage"),
+                icon: '<i class="fas fa-copy"></i>',
+                callback: async (s) => {
+                    try {
+                        const absoluteUrl = new URL(s, document.baseURI).href;
+                        const response = await fetch(absoluteUrl);
+                        let blob = await response.blob();
+                        if (blob.type !== "image/png") {
+                            const bmp = await createImageBitmap(blob);
+                            const canvas = document.createElement("canvas");
+                            canvas.width = bmp.width;
+                            canvas.height = bmp.height;
+                            const ctx = canvas.getContext("2d");
+                            ctx.drawImage(bmp, 0, 0);
+                            blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+                        }
+                        const item = new ClipboardItem({ "image/png": blob });
+                        await navigator.clipboard.write([item]);
+                        ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ImageCopied"));
+                    } catch (err) {
+                        console.error("Nik's Show & Tell | Failed to copy image", err);
+                        ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.CopyFailed"));
+                    }
+                }
+            },
+            {
+                name: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.SaveImage"),
+                icon: '<i class="fas fa-download"></i>',
+                callback: async (s) => {
+                    try {
+                        const absoluteUrl = new URL(s, document.baseURI).href;
+                        const response = await fetch(absoluteUrl);
+                        const blob = await response.blob();
+                        const filename = absoluteUrl.split("/").pop().split("?")[0] || "image.png";
+                        const a = document.createElement("a");
+                        const blobUrl = URL.createObjectURL(blob);
+                        a.href = blobUrl;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(blobUrl);
+                    } catch (err) {
+                        console.error("Nik's Show & Tell | Failed to save image", err);
+                        ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.CopyFailed")); // Reusing error notification for simplicity or we can just let it fail silently
+                    }
+                }
             }
         ];
-
-
 
         return buttons;
     }
