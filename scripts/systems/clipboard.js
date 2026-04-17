@@ -197,6 +197,13 @@ export class ClipboardSystem {
             }
         }
 
+        // Sanitize baseName to remove URLs, folder paths, and invalid characters
+        try {
+            if (baseName.startsWith("http")) baseName = new URL(baseName).pathname;
+        } catch (e) {}
+        baseName = baseName.split(/[\/\\]/).pop().replace(/[^a-zA-Z0-9.\-_]/g, "_");
+        if (!baseName || baseName === `.${ext}`) baseName = `image-${foundry.utils.randomID()}.${ext}`;
+
         // Ensure baseName has an extension
         if (!baseName.includes('.')) {
             baseName += `.${ext}`;
