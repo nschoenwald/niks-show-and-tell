@@ -95,7 +95,7 @@ export class ClipboardSystem {
 
                     if (isChat && urlRegex.test(plain)) {
                         event.preventDefault();
-                        event.stopPropagation();
+                        event.stopImmediatePropagation();
                         return ClipboardSystem.showPasteMenuForSource({ dataUrl: plain });
                     }
                 }
@@ -111,24 +111,48 @@ export class ClipboardSystem {
             // If we have a file, process it
             if (file) {
                 event.preventDefault();
-                event.stopPropagation();
+                event.stopImmediatePropagation();
+
+                // Immediately read the file data into a stable ArrayBuffer to prevent
+                // clipboard data from being garbage-collected during async operations.
+                // This is critical on Windows/Chrome where "Copy Image" clipboard data
+                // can become invalidated after the synchronous paste handler returns.
+                const originalName = file.name || "";
+                const originalType = file.type || "image/png";
+                let stableFile;
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+                        console.warn("Nik's Show & Tell | Clipboard file is empty, skipping.");
+                        return;
+                    }
+                    stableFile = new File([arrayBuffer], originalName, { type: originalType });
+                } catch (bufferErr) {
+                    console.warn("Nik's Show & Tell | Failed to stabilize clipboard data:", bufferErr);
+                    // Fall back to the original file reference if arrayBuffer fails
+                    stableFile = file;
+                }
 
                 // Compress!
                 try {
-                    const compressedBlob = await ImageShareUtils.compressImage(file);
-                    let newName = file.name;
-                    if (newName.includes(".")) {
-                        newName = newName.replace(/\.[^.]+$/, ".webp");
+                    const compressedBlob = await ImageShareUtils.compressImage(stableFile);
+                    if (compressedBlob && compressedBlob.size > 0) {
+                        let newName = originalName;
+                        if (newName.includes(".")) {
+                            newName = newName.replace(/\.[^.]+$/, ".webp");
+                        } else {
+                            newName += ".webp";
+                        }
+                        stableFile = new File([compressedBlob], newName, { type: "image/webp" });
                     } else {
-                        newName += ".webp";
+                        console.warn("Nik's Show & Tell | Compression returned empty blob, using original.");
                     }
-                    file = new File([compressedBlob], newName, { type: "image/webp" });
                 } catch (e) {
                     console.error("Compression failed, using original:", e);
                 }
 
-                const dataUrl = await ImageShareUtils.fileToDataURL(file);
-                return ClipboardSystem.showPasteMenuForSource({ file, dataUrl });
+                const dataUrl = await ImageShareUtils.fileToDataURL(stableFile);
+                return ClipboardSystem.showPasteMenuForSource({ file: stableFile, dataUrl });
             }
         } catch (err) {
             console.error("Nik's Show & Tell | Paste/Drop Error:", err);
@@ -165,8 +189,13 @@ export class ClipboardSystem {
                     icon: "fas fa-share",
                     callback: async (event, button) => {
                         const caption = button.form.querySelector(`[name="caption"]`).value || "";
-                        const path = await ClipboardSystem.uploadAndGetPath({ file, dataUrl, name });
-                        ChatSystem.toChatWithDialog(path, caption);
+                        try {
+                            const path = await ClipboardSystem.uploadAndGetPath({ file, dataUrl, name });
+                            ChatSystem.toChatWithDialog(path, caption);
+                        } catch (uploadErr) {
+                            console.error("Nik's Show & Tell | Upload failed:", uploadErr);
+                            ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.UploadFailed"));
+                        }
                         return true;
                     }
                 },
@@ -220,6 +249,11 @@ export class ClipboardSystem {
             now.getSeconds().toString().padStart(2, '0');
 
         const filename = `${timestamp}-${baseName}`;
+
+        // Validate blob has actual data before attempting upload
+        if (!blob || blob.size === 0) {
+            throw new Error(`${MODULE_SHORT} | Cannot upload empty file`);
+        }
 
         // Always create a new File object to ensure the name is correct
         const fileToUpload = new File([blob], filename, { type: blob.type || "image/png" });
