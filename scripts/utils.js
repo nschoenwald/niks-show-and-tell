@@ -14,13 +14,44 @@ export class ImageShareUtils {
         return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    static get uploadLocation() {
-        let dir = game.settings.get(MODULE_ID, SETTINGS.UPLOAD_LOCATION)?.trim() || "niks-show-and-tell-uploads";
-        return this.#normalizeUploadFolder(dir);
+    /**
+     * Returns the parsed upload target.
+     * For S3: { source: "s3", bucket: "bucket-name", folder: "optional/path" }
+     * For local: { source: "data", bucket: null, folder: "worlds/worldId/uploads" }
+     */
+    static get uploadTarget() {
+        const raw = game.settings.get(MODULE_ID, SETTINGS.UPLOAD_LOCATION)?.trim() || "";
+        return this.#parseUploadTarget(raw);
     }
 
-    static #normalizeUploadFolder(dir) {
-        if (/^[a-z]+:\/\//i.test(dir)) dir = "niks-show-and-tell-uploads";
+    /**
+     * @deprecated Use uploadTarget instead. Kept for backwards compatibility.
+     */
+    static get uploadLocation() {
+        return this.uploadTarget.folder;
+    }
+
+    static #parseUploadTarget(raw) {
+        // Detect S3 paths: s3://bucket-name  or  s3://bucket-name/path/within
+        const s3Match = raw.match(/^s3:\/\/\/?([^/]+)(?:\/(.*))?$/i);
+        if (s3Match) {
+            const bucket = s3Match[1];
+            let folder = (s3Match[2] || "").replace(/\/+$/, "");
+            // Default sub-folder inside the bucket
+            if (!folder) folder = "niks-show-and-tell-uploads";
+            return { source: "s3", bucket, folder: folder.replace(/\/\/+/g, "/") };
+        }
+
+        // Non-S3 URL schemes (http://, ftp://, etc.) are invalid — fall back to default
+        if (/^[a-z]+:\/\//i.test(raw)) {
+            return { source: "data", bucket: null, folder: this.#normalizeLocalFolder("niks-show-and-tell-uploads") };
+        }
+
+        let dir = raw || "niks-show-and-tell-uploads";
+        return { source: "data", bucket: null, folder: this.#normalizeLocalFolder(dir) };
+    }
+
+    static #normalizeLocalFolder(dir) {
         if (!dir.includes("/")) dir = `worlds/${game.world.id}/${dir}`;
 
         // Enforce strict user data paths — block any path under modules/ or systems/

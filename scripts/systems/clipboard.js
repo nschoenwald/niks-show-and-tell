@@ -257,26 +257,27 @@ export class ClipboardSystem {
 
         // Always create a new File object to ensure the name is correct
         const fileToUpload = new File([blob], filename, { type: blob.type || "image/png" });
-        const targetFolder = ImageShareUtils.uploadLocation;
-        const source = "data";
+        const { source, bucket, folder: targetFolder } = ImageShareUtils.uploadTarget;
+        const browseOpts = bucket ? { bucket } : {};
 
         // Ensure directory tree exists (create parent folders recursively)
         try {
-            await foundry.applications.apps.FilePicker.browse(source, targetFolder);
+            await foundry.applications.apps.FilePicker.browse(source, targetFolder, browseOpts);
         } catch {
             const parts = targetFolder.split("/").filter(Boolean);
             let current = "";
             for (const part of parts) {
                 current = current ? `${current}/${part}` : part;
                 try {
-                    await foundry.applications.apps.FilePicker.browse(source, current);
+                    await foundry.applications.apps.FilePicker.browse(source, current, browseOpts);
                 } catch {
-                    await foundry.applications.apps.FilePicker.createDirectory(source, current);
+                    await foundry.applications.apps.FilePicker.createDirectory(source, current, browseOpts);
                 }
             }
         }
 
-        const uploaded = await foundry.applications.apps.FilePicker.upload(source, targetFolder, fileToUpload);
+        const uploadOpts = bucket ? { bucket } : {};
+        const uploaded = await foundry.applications.apps.FilePicker.upload(source, targetFolder, fileToUpload, uploadOpts);
         if (!uploaded?.path) {
             throw new Error(`${MODULE_SHORT} | Upload failed — server returned no path`);
         }
