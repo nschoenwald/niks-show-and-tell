@@ -5,7 +5,8 @@ export const SETTINGS = {
     UPLOAD_LOCATION: "uploadLocation",
     MIN_ROLE: "minRole",
     WEBP_QUALITY: "webpQuality",
-    ENABLE_DRAG_DROP: "enableDragDrop"
+    ENABLE_DRAG_DROP: "enableDragDrop",
+    DEBUG_LOGGING: "debugLogging"
 };
 
 export function registerSettings() {
@@ -61,5 +62,14 @@ export function registerSettings() {
         config: true,
         type: Boolean,
         default: true
+    });
+
+    game.settings.register(MODULE_ID, SETTINGS.DEBUG_LOGGING, {
+        name: "NIKS-SHOW-AND-TELL.Settings.DebugLogging.Name",
+        hint: "NIKS-SHOW-AND-TELL.Settings.DebugLogging.Hint",
+        scope: "client",
+        config: true,
+        type: Boolean,
+        default: false
     });
 }

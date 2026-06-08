@@ -31,5 +31,7 @@
     "NIKS-SHOW-AND-TELL.Dialog.SendImageTo": "Send Image to:",
     "NIKS-SHOW-AND-TELL.Dialog.Caption.Label": "Caption",
     "NIKS-SHOW-AND-TELL.Dialog.Caption.Placeholder": "Optional flavor text...",
-    "NIKS-SHOW-AND-TELL.Notifications.DragDropHint": "Drop image to share!"
+    "NIKS-SHOW-AND-TELL.Notifications.DragDropHint": "Drop image to share!",
+    "NIKS-SHOW-AND-TELL.Settings.DebugLogging.Name": "Debug Logging",
+    "NIKS-SHOW-AND-TELL.Settings.DebugLogging.Hint": "Enable verbose debug logging to the browser console. Useful for troubleshooting clipboard and upload issues."
 }

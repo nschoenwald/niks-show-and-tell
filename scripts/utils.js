@@ -1,5 +1,21 @@
 import { MODULE_ID, SETTINGS } from "./settings.js";
 
+const LOG_PREFIX = "Nik's Show & Tell |";
+
+/**
+ * Log a debug message to the console, gated behind the debug setting.
+ * Accepts any number of arguments, just like console.log.
+ */
+export function debugLog(...args) {
+    try {
+        if (game.settings.get(MODULE_ID, SETTINGS.DEBUG_LOGGING)) {
+            console.log(`%c${LOG_PREFIX} DEBUG`, "color: #7c4dff; font-weight: bold;", ...args);
+        }
+    } catch {
+        // Settings not yet registered — silently ignore
+    }
+}
+
 export class ImageShareUtils {
     static get canUserShare() {
         const minRole = game.settings.get(MODULE_ID, SETTINGS.MIN_ROLE);
