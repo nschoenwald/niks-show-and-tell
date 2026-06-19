@@ -103,13 +103,16 @@ export class ClipboardSystem {
                 const plain = dt.getData("text/plain") || "";
                 if (plain) {
                     const imgExts = "jpg|jpeg|png|gif|svg|webp";
-                    const urlRegex = new RegExp(`^https?:\\/\\/[^\\s"']+\\.(${imgExts})[^\\s"']*$`, "i");
+                    // Match direct image URLs (with or without query params)
+                    const urlRegex = new RegExp(`^https?:\\/\\/[^\\s"']+\\.(${imgExts})(\\?[^\\s"']*)?$`, "i");
+                    // Also match known image CDN hosts (Notion, etc.) even without image extensions
+                    const cdnRegex = /^https?:\/\/(img\.notionusercontent\.com|images\.unsplash\.com|i\.imgur\.com)\//i;
 
                     // If it's a direct image link and we are in chat context
                     // (Drop is always considered context, Paste only if focused on chat)
                     const isChat = event.type === "drop" || (event.target.id === "chat-message" || event.target.closest("#chat-message"));
 
-                    if (isChat && urlRegex.test(plain)) {
+                    if (isChat && (urlRegex.test(plain) || cdnRegex.test(plain))) {
                         debugLog("URL image paste detected:", plain);
                         event.preventDefault();
                         event.stopImmediatePropagation();
@@ -285,7 +288,11 @@ export class ClipboardSystem {
                                 message: uploadErr.message,
                                 stack: uploadErr.stack
                             });
-                            ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.UploadFailed"));
+                            // Show specific error for permission/CORS issues, generic for others
+                            const msg = uploadErr.message?.includes(MODULE_SHORT)
+                                ? uploadErr.message.replace(`${MODULE_SHORT} | `, "")
+                                : game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.UploadFailed");
+                            ui.notifications.error(msg);
                         }
                         return true;
                     }
@@ -307,13 +314,44 @@ export class ClipboardSystem {
             name
         });
 
+        // Pre-flight: check that the user has file upload permission
+        const canUpload = game.user.hasPermission("FILES_UPLOAD");
+        if (!canUpload) {
+            debugLog("Upload blocked: user lacks FILES_UPLOAD permission", {
+                userId: game.user.id,
+                userName: game.user.name,
+                role: game.user.role
+            });
+            throw new Error(
+                `${MODULE_SHORT} | You do not have permission to upload files. ` +
+                `Ask your GM to enable "Upload New File" for your role in Game Settings → User Management.`
+            );
+        }
+
         // Always prefer reconstructing from dataUrl — it is a stable, self-contained
         // base64 copy that cannot be garbage-collected, unlike File references which
         // may become stale on Chrome/Windows between the paste and the upload click.
         let blob;
         if (dataUrl) {
-            debugLog("Reconstructing blob from dataUrl for upload");
-            blob = await ImageShareUtils.blobFromDataURL(dataUrl);
+            if (dataUrl.startsWith("data:")) {
+                debugLog("Reconstructing blob from data: URI for upload");
+                blob = await ImageShareUtils.blobFromDataURL(dataUrl);
+            } else if (/^https?:\/\//i.test(dataUrl)) {
+                // Remote URL — try to load via canvas (CORS-safe)
+                debugLog("Loading remote URL via canvas for upload:", dataUrl);
+                try {
+                    blob = await ImageShareUtils.fetchImageViaCanvas(dataUrl);
+                } catch (corsErr) {
+                    debugLog("Remote image load failed (CORS):", corsErr.message);
+                    throw new Error(
+                        `${MODULE_SHORT} | Could not download remote image — the image server blocked the request (CORS). ` +
+                        `Try right-clicking the image, saving it to your computer first, then uploading it.`
+                    );
+                }
+            } else {
+                debugLog("Reconstructing blob from unknown URI scheme");
+                blob = await ImageShareUtils.blobFromDataURL(dataUrl);
+            }
         } else if (file) {
             debugLog("Using file reference directly (no dataUrl available)");
             blob = file;

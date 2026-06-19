@@ -114,7 +114,79 @@ export class ImageShareUtils {
     }
 
     static async blobFromDataURL(dataURL) {
-        return await (await fetch(dataURL)).blob();
+        if (!dataURL) throw new Error("blobFromDataURL: no dataURL provided");
+
+        // For actual data: URIs, fetch works perfectly
+        if (dataURL.startsWith("data:")) {
+            return await (await fetch(dataURL)).blob();
+        }
+
+        // For remote URLs (https://), try loading via canvas to bypass CORS
+        return await ImageShareUtils.fetchImageViaCanvas(dataURL);
+    }
+
+    /**
+     * Load a remote image URL via an <img> element + canvas.
+     * This bypasses CORS fetch restrictions because browsers allow rendering
+     * cross-origin images — we just can't fetch them programmatically.
+     * Setting crossOrigin = "anonymous" requests CORS headers; if the server
+     * provides them, canvas.toBlob works. If not, we retry without crossOrigin
+     * which renders the image but "taints" the canvas — so we fall back to a
+     * simple proxy approach.
+     * @param {string} url - The remote image URL
+     * @returns {Promise<Blob>} The image as a blob
+     */
+    static async fetchImageViaCanvas(url) {
+        // Attempt 1: With crossOrigin (clean canvas, if server allows CORS)
+        try {
+            const blob = await ImageShareUtils.#loadImageToCanvas(url, true);
+            if (blob && blob.size > 0) return blob;
+        } catch (e) {
+            debugLog("fetchImageViaCanvas CORS attempt failed:", e.message);
+        }
+
+        // Attempt 2: Without crossOrigin (tainted canvas, but can still render)
+        // This won't allow toBlob, but we try anyway in case the browser allows it
+        try {
+            const blob = await ImageShareUtils.#loadImageToCanvas(url, false);
+            if (blob && blob.size > 0) return blob;
+        } catch (e) {
+            debugLog("fetchImageViaCanvas non-CORS attempt failed:", e.message);
+        }
+
+        throw new Error(`Failed to load remote image: ${url}`);
+    }
+
+    /**
+     * @param {string} url
+     * @param {boolean} useCORS - Whether to set crossOrigin="anonymous"
+     * @returns {Promise<Blob>}
+     */
+    static #loadImageToCanvas(url, useCORS) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            if (useCORS) img.crossOrigin = "anonymous";
+
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0);
+                    canvas.toBlob((blob) => {
+                        if (blob && blob.size > 0) resolve(blob);
+                        else reject(new Error("Canvas toBlob returned empty"));
+                    }, "image/png");
+                } catch (e) {
+                    // SecurityError from tainted canvas
+                    reject(e);
+                }
+            };
+
+            img.onerror = () => reject(new Error(`Image load failed for: ${url}`));
+            img.src = url;
+        });
     }
 
     static async imageFromClipboard() {
