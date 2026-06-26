@@ -154,6 +154,21 @@ export class ImageShareUtils {
             debugLog("fetchImageViaCanvas non-CORS attempt failed:", e.message);
         }
 
+        // Attempt 3: Direct fetch (works if server allows CORS headers on fetch)
+        // Some CDNs allow fetch-based CORS but block <img crossOrigin> loading
+        try {
+            const response = await fetch(url, { mode: "cors" });
+            if (response.ok) {
+                const blob = await response.blob();
+                if (blob && blob.size > 0 && blob.type.startsWith("image/")) {
+                    debugLog("Direct fetch succeeded for:", url);
+                    return blob;
+                }
+            }
+        } catch (e) {
+            debugLog("Direct fetch failed:", e.message);
+        }
+
         throw new Error(`Failed to load remote image: ${url}`);
     }
 

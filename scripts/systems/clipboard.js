@@ -89,7 +89,14 @@ export class ClipboardSystem {
                             type: file?.type,
                             size: file?.size
                         });
-                        break;
+                        // Chrome/Windows can return a 0-byte ghost file when it
+                        // fails to decode the source image into a clipboard bitmap.
+                        // Discard it so we fall through to URL-based extraction.
+                        if (file && file.size === 0) {
+                            debugLog("getAsFile() returned 0-byte file, discarding");
+                            file = null;
+                        }
+                        if (file) break;
                     }
                 }
             }
@@ -98,22 +105,42 @@ export class ClipboardSystem {
                 debugLog("Fallback to dt.files:", { found: !!file, name: file?.name, size: file?.size });
             }
 
-            // Safe URL Interception (only for strings)
+            // --- Fallback: extract image URL from text/html ---
+            // Chrome "Copy Image" always puts <img src="ORIGINAL_URL"> in
+            // text/html, even when the raw bitmap blob is unavailable.
+            if (!file) {
+                const html = dt.getData("text/html") || "";
+                if (html) {
+                    try {
+                        const doc = new DOMParser().parseFromString(html, "text/html");
+                        const img = doc.querySelector("img[src]");
+                        if (img?.src && /^https?:\/\//i.test(img.src)) {
+                            debugLog("Extracted image URL from text/html:", img.src);
+                            const isChat = event.type === "drop" || (event.target.id === "chat-message" || event.target.closest("#chat-message"));
+                            if (isChat) {
+                                event.preventDefault();
+                                event.stopImmediatePropagation();
+                                return ClipboardSystem.showPasteMenuForSource({ dataUrl: img.src });
+                            }
+                        }
+                    } catch (htmlErr) {
+                        debugLog("text/html parsing failed:", htmlErr.message);
+                    }
+                }
+            }
+
+            // --- Fallback: image URL from text/plain ---
             if (!file) {
                 const plain = dt.getData("text/plain") || "";
                 if (plain) {
-                    const imgExts = "jpg|jpeg|png|gif|svg|webp";
+                    const imgExts = "jpg|jpeg|png|gif|svg|webp|avif|bmp|tiff|ico";
                     // Match direct image URLs (with or without query params)
                     const urlRegex = new RegExp(`^https?:\\/\\/[^\\s"']+\\.(${imgExts})(\\?[^\\s"']*)?$`, "i");
-                    // Also match known image CDN hosts (Notion, etc.) even without image extensions
-                    const cdnRegex = /^https?:\/\/(img\.notionusercontent\.com|images\.unsplash\.com|i\.imgur\.com)\//i;
 
-                    // If it's a direct image link and we are in chat context
-                    // (Drop is always considered context, Paste only if focused on chat)
                     const isChat = event.type === "drop" || (event.target.id === "chat-message" || event.target.closest("#chat-message"));
 
-                    if (isChat && (urlRegex.test(plain) || cdnRegex.test(plain))) {
-                        debugLog("URL image paste detected:", plain);
+                    if (isChat && urlRegex.test(plain)) {
+                        debugLog("URL image paste detected from text/plain:", plain);
                         event.preventDefault();
                         event.stopImmediatePropagation();
                         return ClipboardSystem.showPasteMenuForSource({ dataUrl: plain });
@@ -125,6 +152,23 @@ export class ClipboardSystem {
                     (event.target.id === "chat-message" || event.target.closest("#chat-message"))) {
                     ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.LocalFile"));
                 }
+
+                // --- Last resort: Async Clipboard API ---
+                try {
+                    const asyncDataUrl = await ImageShareUtils.imageFromClipboard();
+                    if (asyncDataUrl) {
+                        debugLog("Async Clipboard API provided image data");
+                        const isChatAsync = event.type === "drop" || (event.target.id === "chat-message" || event.target.closest("#chat-message"));
+                        if (isChatAsync) {
+                            event.preventDefault();
+                            event.stopImmediatePropagation();
+                            return ClipboardSystem.showPasteMenuForSource({ dataUrl: asyncDataUrl });
+                        }
+                    }
+                } catch (asyncErr) {
+                    debugLog("Async Clipboard API fallback failed:", asyncErr.message);
+                }
+
                 return;
             }
 
