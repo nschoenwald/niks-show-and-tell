@@ -82,18 +82,31 @@ export class ContextMenuSystem {
                 callback: async (s) => {
                     try {
                         const absoluteUrl = new URL(s, document.baseURI).href;
-                        const response = await fetch(absoluteUrl);
-                        let blob = await response.blob();
-                        if (blob.type !== "image/png") {
-                            const bmp = await createImageBitmap(blob);
-                            const canvas = document.createElement("canvas");
-                            canvas.width = bmp.width;
-                            canvas.height = bmp.height;
-                            const ctx = canvas.getContext("2d");
-                            ctx.drawImage(bmp, 0, 0);
-                            blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-                        }
-                        const item = new ClipboardItem({ "image/png": blob });
+
+                        // Build the blob promise but construct ClipboardItem
+                        // synchronously so the browser ties the write to the
+                        // original click gesture (transient user activation).
+                        const blobPromise = (async () => {
+                            const response = await fetch(absoluteUrl);
+                            let blob = await response.blob();
+                            if (blob.type !== "image/png") {
+                                const bmp = await createImageBitmap(blob);
+                                const canvas = document.createElement("canvas");
+                                canvas.width = bmp.width;
+                                canvas.height = bmp.height;
+                                const ctx = canvas.getContext("2d");
+                                ctx.drawImage(bmp, 0, 0);
+                                blob = await new Promise((resolve, reject) => {
+                                    canvas.toBlob((result) => {
+                                        if (result) resolve(result);
+                                        else reject(new Error("Canvas PNG conversion returned null"));
+                                    }, "image/png");
+                                });
+                            }
+                            return blob;
+                        })();
+
+                        const item = new ClipboardItem({ "image/png": blobPromise });
                         await navigator.clipboard.write([item]);
                         ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ImageCopied"));
                     } catch (err) {

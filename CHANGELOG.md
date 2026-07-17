@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.7
+
+### Fixed: "Copy Image" intermittently failing
+
+Fixed an issue where the context menu "Copy Image" button would occasionally show a red "Failed to copy image to clipboard" error. This was caused by the browser's transient user activation expiring during the async fetch and image conversion pipeline before `navigator.clipboard.write()` was called. The `ClipboardItem` is now constructed synchronously within the click handler, passing a `Promise<Blob>` as the value, which preserves the user gesture context. Also added a null-guard for the `canvas.toBlob()` result.
+
 ## 14.6
 
 ### Improved: Clipboard Image Paste (Chrome/Windows)
