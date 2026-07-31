@@ -80,15 +80,31 @@ export class ContextMenuSystem {
                 name: game.i18n.localize("NIKS-SHOW-AND-TELL.Buttons.CopyImage"),
                 icon: '<i class="fas fa-copy"></i>',
                 callback: async (s) => {
-                    try {
-                        const absoluteUrl = new URL(s, document.baseURI).href;
+                    const absoluteUrl = new URL(s, document.baseURI).href;
 
-                        // Build the blob promise but construct ClipboardItem
-                        // synchronously so the browser ties the write to the
-                        // original click gesture (transient user activation).
-                        const blobPromise = (async () => {
-                            const response = await fetch(absoluteUrl);
-                            let blob = await response.blob();
+                    // Check for Secure Context (HTTPS or localhost)
+                    if (!navigator.clipboard?.write) {
+                        game.clipboard.copyPlainText(absoluteUrl);
+                        ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied") + " (Clipboard API requires HTTPS)");
+                        return;
+                    }
+
+                    try {
+                        const getPngBlob = async () => {
+                            let blob;
+                            if (s.startsWith("data:")) {
+                                blob = await ImageShareUtils.blobFromDataURL(s);
+                            } else {
+                                try {
+                                    const response = await fetch(absoluteUrl);
+                                    if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+                                    blob = await response.blob();
+                                } catch (fetchErr) {
+                                    // Fallback for CORS or external images via canvas loading
+                                    blob = await ImageShareUtils.fetchImageViaCanvas(absoluteUrl);
+                                }
+                            }
+
                             if (blob.type !== "image/png") {
                                 const bmp = await createImageBitmap(blob);
                                 const canvas = document.createElement("canvas");
@@ -104,14 +120,31 @@ export class ContextMenuSystem {
                                 });
                             }
                             return blob;
-                        })();
+                        };
 
-                        const item = new ClipboardItem({ "image/png": blobPromise });
-                        await navigator.clipboard.write([item]);
-                        ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ImageCopied"));
+                        // Strategy 1: Pass Promise<Blob> to ClipboardItem (preserves user activation gesture in modern browsers)
+                        try {
+                            const blobPromise = getPngBlob();
+                            const item = new ClipboardItem({ "image/png": blobPromise });
+                            await navigator.clipboard.write([item]);
+                            ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ImageCopied"));
+                            return;
+                        } catch (asyncErr) {
+                            // Strategy 2: Pre-resolve Blob then pass to ClipboardItem (fallback for environments rejecting Promise<Blob>)
+                            const blob = await getPngBlob();
+                            const item = new ClipboardItem({ "image/png": blob });
+                            await navigator.clipboard.write([item]);
+                            ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ImageCopied"));
+                        }
                     } catch (err) {
-                        console.error("Nik's Show & Tell | Failed to copy image", err);
-                        ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.CopyFailed"));
+                        console.error("Nik's Show & Tell | Failed to copy raw image data, falling back to URL copy:", err);
+                        // Fallback: Copy absolute URL if raw bitmap copying fails (e.g. CORS/Tainted Canvas)
+                        try {
+                            game.clipboard.copyPlainText(absoluteUrl);
+                            ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied"));
+                        } catch {
+                            ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.CopyFailed"));
+                        }
                     }
                 }
             },

@@ -1,5 +1,14 @@
 # Changelog
 
+## 14.8
+
+### Improved: Context Menu "Copy Image" Resilience
+
+- **Secure Context Check**: Automatically detects HTTP connections where `navigator.clipboard` is unavailable, warning the user and copying the image URL to the clipboard instead.
+- **CORS & Data URI Fallback**: Integrated `ImageShareUtils.fetchImageViaCanvas` and `blobFromDataURL` to handle images hosted across origins or formatted as `data:` URIs.
+- **Dual-Strategy Clipboard Writes**: Attempts `Promise<Blob>` resolution inside `ClipboardItem` to preserve user activation gesture in modern browsers, with a fallback to pre-resolving the `Blob` for browser/Electron environments that do not support promise values in `ClipboardItem`.
+- **Automatic Fallback to Copy URL**: If raw image bitmap copying fails due to browser security restrictions (e.g. cross-origin canvas tainting), gracefully falls back to copying the absolute image URL.
+
 ## 14.7
 
 ### Fixed: "Copy Image" intermittently failing
