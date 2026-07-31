@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.8.1
+
+### Fixed: GitHub Release Packaging (`languages/en.json` missing)
+
+- **Release Archive Fix**: Fixed an issue in the `.github/workflows/release.yml` GitHub Action workflow where the archive loop targeted `lang` instead of `languages/`. This caused release `.zip` packages to omit `languages/en.json`, resulting in `PACKAGE.InstallFailed` validation errors during Foundry module installation.
+
 ## 14.8
 
 ### Improved: Context Menu "Copy Image" Resilience & Reliability
