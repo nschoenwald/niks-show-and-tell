@@ -30,7 +30,7 @@
     {
       "lang": "en",
       "name": "English",
-      "path": "languages/en.json"
+      "path": "lang/en.json"
     }
   ],
   "description": "Adds context menu options to images to share to chat, and allows pasting images directly into chat."
