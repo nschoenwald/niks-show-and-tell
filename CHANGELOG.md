@@ -2,12 +2,12 @@
 
 ## 14.8
 
-### Improved: Context Menu "Copy Image" Resilience
+### Improved: Context Menu "Copy Image" Resilience & Reliability
 
+- **DOM `currentSrc` Resolution**: Extracted image URLs using `event.target.currentSrc` instead of raw `getAttribute("src")`. This guarantees the module uses the exact, fully qualified URL resolved by the browser, preventing false 404 errors on relative image paths.
+- **S3 CORS Disk Cache Bypass**: Fixed an issue where copying external images (e.g., hosted on AWS S3) failed because the browser served non-CORS cached responses from initial `<img>` tag renders. Appends a cache-busting parameter (`&_cors=timestamp`) on fallback fetch to ensure a fresh CORS-enabled network response.
+- **Streamlined Execution & URL Fallback**: Refactored `CopyImage` to a single-pass pipeline. If raw bitmap extraction is blocked by security policies or canvas tainting, the module cleanly logs a warning and copies the absolute image URL to the clipboard with a notification.
 - **Secure Context Check**: Automatically detects HTTP connections where `navigator.clipboard` is unavailable, warning the user and copying the image URL to the clipboard instead.
-- **CORS & Data URI Fallback**: Integrated `ImageShareUtils.fetchImageViaCanvas` and `blobFromDataURL` to handle images hosted across origins or formatted as `data:` URIs.
-- **Dual-Strategy Clipboard Writes**: Attempts `Promise<Blob>` resolution inside `ClipboardItem` to preserve user activation gesture in modern browsers, with a fallback to pre-resolving the `Blob` for browser/Electron environments that do not support promise values in `ClipboardItem`.
-- **Automatic Fallback to Copy URL**: If raw image bitmap copying fails due to browser security restrictions (e.g. cross-origin canvas tainting), gracefully falls back to copying the absolute image URL.
 
 ## 14.7
 

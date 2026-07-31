@@ -24,7 +24,7 @@ export class ContextMenuSystem {
     }
 
     static showContextMenu(event) {
-        const src = event.target.getAttribute("src");
+        const src = event.target.currentSrc || event.target.src || event.target.getAttribute("src");
         document.querySelectorAll(".niks-show-and-tell-menu").forEach((el) => el.remove());
 
         const contextmenu = document.createElement("div");
@@ -89,62 +89,62 @@ export class ContextMenuSystem {
                         return;
                     }
 
+                    let blob;
                     try {
-                        const getPngBlob = async () => {
-                            let blob;
-                            if (s.startsWith("data:")) {
-                                blob = await ImageShareUtils.blobFromDataURL(s);
-                            } else {
+                        if (s.startsWith("data:")) {
+                            blob = await ImageShareUtils.blobFromDataURL(s);
+                        } else {
+                            try {
+                                const response = await fetch(absoluteUrl, { mode: "cors" });
+                                if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+                                blob = await response.blob();
+                            } catch (fetchErr) {
+                                // S3 / Browser Cache issue: If the image was previously cached by the
+                                // browser from a standard <img> tag, the cached response lacks CORS headers.
+                                // Appending a cache-buster query parameter forces a fresh network fetch with CORS.
+                                const corsUrl = absoluteUrl + (absoluteUrl.includes("?") ? "&" : "?") + "_cors=" + Date.now();
                                 try {
-                                    const response = await fetch(absoluteUrl);
+                                    const response = await fetch(corsUrl, { mode: "cors" });
                                     if (!response.ok) throw new Error(`HTTP status ${response.status}`);
                                     blob = await response.blob();
-                                } catch (fetchErr) {
-                                    // Fallback for CORS or external images via canvas loading
-                                    blob = await ImageShareUtils.fetchImageViaCanvas(absoluteUrl);
+                                } catch (corsFetchErr) {
+                                    // Fallback for external images via canvas loading
+                                    blob = await ImageShareUtils.fetchImageViaCanvas(corsUrl);
                                 }
                             }
-
-                            if (blob.type !== "image/png") {
-                                const bmp = await createImageBitmap(blob);
-                                const canvas = document.createElement("canvas");
-                                canvas.width = bmp.width;
-                                canvas.height = bmp.height;
-                                const ctx = canvas.getContext("2d");
-                                ctx.drawImage(bmp, 0, 0);
-                                blob = await new Promise((resolve, reject) => {
-                                    canvas.toBlob((result) => {
-                                        if (result) resolve(result);
-                                        else reject(new Error("Canvas PNG conversion returned null"));
-                                    }, "image/png");
-                                });
-                            }
-                            return blob;
-                        };
-
-                        // Strategy 1: Pass Promise<Blob> to ClipboardItem (preserves user activation gesture in modern browsers)
-                        try {
-                            const blobPromise = getPngBlob();
-                            const item = new ClipboardItem({ "image/png": blobPromise });
-                            await navigator.clipboard.write([item]);
-                            ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ImageCopied"));
-                            return;
-                        } catch (asyncErr) {
-                            // Strategy 2: Pre-resolve Blob then pass to ClipboardItem (fallback for environments rejecting Promise<Blob>)
-                            const blob = await getPngBlob();
-                            const item = new ClipboardItem({ "image/png": blob });
-                            await navigator.clipboard.write([item]);
-                            ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ImageCopied"));
                         }
-                    } catch (err) {
-                        console.error("Nik's Show & Tell | Failed to copy raw image data, falling back to URL copy:", err);
-                        // Fallback: Copy absolute URL if raw bitmap copying fails (e.g. CORS/Tainted Canvas)
-                        try {
-                            game.clipboard.copyPlainText(absoluteUrl);
-                            ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied"));
-                        } catch {
-                            ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.CopyFailed"));
+
+                        if (blob.type !== "image/png") {
+                            const bmp = await createImageBitmap(blob);
+                            const canvas = document.createElement("canvas");
+                            canvas.width = bmp.width;
+                            canvas.height = bmp.height;
+                            const ctx = canvas.getContext("2d");
+                            ctx.drawImage(bmp, 0, 0);
+                            blob = await new Promise((resolve, reject) => {
+                                canvas.toBlob((result) => {
+                                    if (result) resolve(result);
+                                    else reject(new Error("Canvas PNG conversion returned null"));
+                                }, "image/png");
+                            });
                         }
+                    } catch (fetchOrCanvasErr) {
+                        // Raw image bitmap could not be fetched/converted (e.g. CORS restriction on external server)
+                        console.warn("Nik's Show & Tell | Direct image byte fetch failed (CORS restriction). Falling back to URL copy.", fetchOrCanvasErr);
+                        game.clipboard.copyPlainText(absoluteUrl);
+                        ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied"));
+                        return;
+                    }
+
+                    // Write PNG blob to system clipboard
+                    try {
+                        const item = new ClipboardItem({ "image/png": blob });
+                        await navigator.clipboard.write([item]);
+                        ui.notifications.info(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.ImageCopied"));
+                    } catch (writeErr) {
+                        console.error("Nik's Show & Tell | Clipboard write failed, falling back to URL copy:", writeErr);
+                        game.clipboard.copyPlainText(absoluteUrl);
+                        ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied"));
                     }
                 }
             },

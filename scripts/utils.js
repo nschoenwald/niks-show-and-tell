@@ -137,16 +137,17 @@ export class ImageShareUtils {
      * @returns {Promise<Blob>} The image as a blob
      */
     static async fetchImageViaCanvas(url) {
+        const corsUrl = url.includes("_cors=") ? url : (url + (url.includes("?") ? "&" : "?") + "_cors=" + Date.now());
+
         // Attempt 1: With crossOrigin (clean canvas, if server allows CORS)
         try {
-            const blob = await ImageShareUtils.#loadImageToCanvas(url, true);
+            const blob = await ImageShareUtils.#loadImageToCanvas(corsUrl, true);
             if (blob && blob.size > 0) return blob;
         } catch (e) {
             debugLog("fetchImageViaCanvas CORS attempt failed:", e.message);
         }
 
         // Attempt 2: Without crossOrigin (tainted canvas, but can still render)
-        // This won't allow toBlob, but we try anyway in case the browser allows it
         try {
             const blob = await ImageShareUtils.#loadImageToCanvas(url, false);
             if (blob && blob.size > 0) return blob;
@@ -154,22 +155,7 @@ export class ImageShareUtils {
             debugLog("fetchImageViaCanvas non-CORS attempt failed:", e.message);
         }
 
-        // Attempt 3: Direct fetch (works if server allows CORS headers on fetch)
-        // Some CDNs allow fetch-based CORS but block <img crossOrigin> loading
-        try {
-            const response = await fetch(url, { mode: "cors" });
-            if (response.ok) {
-                const blob = await response.blob();
-                if (blob && blob.size > 0 && blob.type.startsWith("image/")) {
-                    debugLog("Direct fetch succeeded for:", url);
-                    return blob;
-                }
-            }
-        } catch (e) {
-            debugLog("Direct fetch failed:", e.message);
-        }
-
-        throw new Error(`Failed to load remote image: ${url}`);
+        throw new Error(`Failed to load remote image due to CORS restrictions: ${url}`);
     }
 
     /**
