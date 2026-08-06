@@ -1,5 +1,15 @@
 # Changelog
 
+## 14.8.2
+
+### Fixed: Image Pasting & Copying Reliability Improvements
+
+- **Async Clipboard API Fallback**: Fixed an issue where the async Clipboard API fallback was incorrectly nested inside the plain text check block, preventing raw binary image pastes from attempting async clipboard retrieval when `text/plain` was empty.
+- **Same-Origin Asset Copying**: Fixed an issue where copying local Foundry images to the clipboard failed due to fetching same-origin assets in CORS mode when the server returned no CORS headers.
+- **Selective Event Propagation**: Preserved event bubbling for non-image paste events so other modules and browser defaults are not unnecessarily blocked.
+- **Browser Compatibility**: Added feature detection for `ClipboardItem` and PNG support (giving clearer fallback feedback in Firefox) and refined canvas image loading without unneeded cache-buster parameters on local assets.
+- **Paste & Save Diagnostics**: Added user notifications for failed clipboard image extractions and updated image saving to support fallback canvas retrieval and localized error notifications.
+
 ## 14.8.1
 
 ### Fixed: GitHub Release Packaging (`lang/en.json` missing)

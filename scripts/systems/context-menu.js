@@ -81,11 +81,19 @@ export class ContextMenuSystem {
                 icon: '<i class="fas fa-copy"></i>',
                 callback: async (s) => {
                     const absoluteUrl = new URL(s, document.baseURI).href;
+                    const isSameOrigin = new URL(absoluteUrl).origin === location.origin;
 
                     // Check for Secure Context (HTTPS or localhost)
                     if (!navigator.clipboard?.write) {
                         game.clipboard.copyPlainText(absoluteUrl);
                         ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied") + " (Clipboard API requires HTTPS)");
+                        return;
+                    }
+
+                    // Check browser ClipboardItem support (Issue 10 fix)
+                    if (typeof ClipboardItem === "undefined" || (typeof ClipboardItem.supports === "function" && !ClipboardItem.supports("image/png"))) {
+                        game.clipboard.copyPlainText(absoluteUrl);
+                        ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.URLCopied") + " (Image copy not supported in this browser)");
                         return;
                     }
 
@@ -95,21 +103,23 @@ export class ContextMenuSystem {
                             blob = await ImageShareUtils.blobFromDataURL(s);
                         } else {
                             try {
-                                const response = await fetch(absoluteUrl, { mode: "cors" });
+                                // Issue 8 fix: use same-origin mode for same-origin URLs
+                                const response = await fetch(absoluteUrl, { mode: isSameOrigin ? "same-origin" : "cors" });
                                 if (!response.ok) throw new Error(`HTTP status ${response.status}`);
                                 blob = await response.blob();
                             } catch (fetchErr) {
-                                // S3 / Browser Cache issue: If the image was previously cached by the
-                                // browser from a standard <img> tag, the cached response lacks CORS headers.
-                                // Appending a cache-buster query parameter forces a fresh network fetch with CORS.
-                                const corsUrl = absoluteUrl + (absoluteUrl.includes("?") ? "&" : "?") + "_cors=" + Date.now();
-                                try {
-                                    const response = await fetch(corsUrl, { mode: "cors" });
-                                    if (!response.ok) throw new Error(`HTTP status ${response.status}`);
-                                    blob = await response.blob();
-                                } catch (corsFetchErr) {
-                                    // Fallback for external images via canvas loading
-                                    blob = await ImageShareUtils.fetchImageViaCanvas(corsUrl);
+                                if (!isSameOrigin) {
+                                    // S3 / Browser Cache issue: query param cache-buster with CORS mode
+                                    const corsUrl = absoluteUrl + (absoluteUrl.includes("?") ? "&" : "?") + "_cors=" + Date.now();
+                                    try {
+                                        const response = await fetch(corsUrl, { mode: "cors" });
+                                        if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+                                        blob = await response.blob();
+                                    } catch (corsFetchErr) {
+                                        blob = await ImageShareUtils.fetchImageViaCanvas(corsUrl);
+                                    }
+                                } else {
+                                    blob = await ImageShareUtils.fetchImageViaCanvas(absoluteUrl);
                                 }
                             }
                         }
@@ -154,8 +164,19 @@ export class ContextMenuSystem {
                 callback: async (s) => {
                     try {
                         const absoluteUrl = new URL(s, document.baseURI).href;
-                        const response = await fetch(absoluteUrl);
-                        const blob = await response.blob();
+                        const isSameOrigin = new URL(absoluteUrl).origin === location.origin;
+                        let blob;
+                        if (s.startsWith("data:")) {
+                            blob = await ImageShareUtils.blobFromDataURL(s);
+                        } else {
+                            try {
+                                const response = await fetch(absoluteUrl, { mode: isSameOrigin ? "same-origin" : "cors" });
+                                if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+                                blob = await response.blob();
+                            } catch (fetchErr) {
+                                blob = await ImageShareUtils.fetchImageViaCanvas(absoluteUrl);
+                            }
+                        }
                         const filename = absoluteUrl.split("/").pop().split("?")[0] || "image.png";
                         const a = document.createElement("a");
                         const blobUrl = URL.createObjectURL(blob);
@@ -167,7 +188,7 @@ export class ContextMenuSystem {
                         URL.revokeObjectURL(blobUrl);
                     } catch (err) {
                         console.error("Nik's Show & Tell | Failed to save image", err);
-                        ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.CopyFailed")); // Reusing error notification for simplicity or we can just let it fail silently
+                        ui.notifications.error(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.SaveFailed"));
                     }
                 }
             }

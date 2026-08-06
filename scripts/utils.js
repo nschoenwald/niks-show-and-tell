@@ -110,7 +110,7 @@ export class ImageShareUtils {
     }
 
     static async blobToDataURL(blob) {
-        return ImageShareUtils.fileToDataURL(new File([blob], "clipboard", { type: blob.type || "application/octet-stream" }));
+        return ImageShareUtils.fileToDataURL(new File([blob], "clipboard", { type: blob.type || "image/png" }));
     }
 
     static async blobFromDataURL(dataURL) {
@@ -126,22 +126,27 @@ export class ImageShareUtils {
     }
 
     /**
-     * Load a remote image URL via an <img> element + canvas.
+     * Load a remote or local image URL via an <img> element + canvas.
      * This bypasses CORS fetch restrictions because browsers allow rendering
      * cross-origin images — we just can't fetch them programmatically.
-     * Setting crossOrigin = "anonymous" requests CORS headers; if the server
-     * provides them, canvas.toBlob works. If not, we retry without crossOrigin
-     * which renders the image but "taints" the canvas — so we fall back to a
-     * simple proxy approach.
-     * @param {string} url - The remote image URL
+     * @param {string} url - The image URL
      * @returns {Promise<Blob>} The image as a blob
      */
     static async fetchImageViaCanvas(url) {
-        const corsUrl = url.includes("_cors=") ? url : (url + (url.includes("?") ? "&" : "?") + "_cors=" + Date.now());
+        const isSameOrigin = /^data:|^blob:/i.test(url) || (new URL(url, document.baseURI).origin === location.origin);
+
+        if (isSameOrigin) {
+            try {
+                const blob = await ImageShareUtils.#loadImageToCanvas(url, false);
+                if (blob && blob.size > 0) return blob;
+            } catch (e) {
+                debugLog("fetchImageViaCanvas same-origin attempt failed:", e.message);
+            }
+        }
 
         // Attempt 1: With crossOrigin (clean canvas, if server allows CORS)
         try {
-            const blob = await ImageShareUtils.#loadImageToCanvas(corsUrl, true);
+            const blob = await ImageShareUtils.#loadImageToCanvas(url, true);
             if (blob && blob.size > 0) return blob;
         } catch (e) {
             debugLog("fetchImageViaCanvas CORS attempt failed:", e.message);

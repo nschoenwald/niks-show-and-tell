@@ -24,6 +24,8 @@
     "NIKS-SHOW-AND-TELL.Notifications.ImageCopied": "Image copied to clipboard.",
     "NIKS-SHOW-AND-TELL.Notifications.CopyFailed": "Failed to copy image to clipboard.",
     "NIKS-SHOW-AND-TELL.Notifications.UploadFailed": "Failed to upload image. Check the console for details.",
+    "NIKS-SHOW-AND-TELL.Notifications.PasteFailed": "Could not extract image from clipboard.",
+    "NIKS-SHOW-AND-TELL.Notifications.SaveFailed": "Failed to save image.",
     "NIKS-SHOW-AND-TELL.Settings.WebPQuality.Name": "WebP Compression Quality",
     "NIKS-SHOW-AND-TELL.Settings.WebPQuality.Hint": "Quality of converted images (0.1 to 1.0). Lower is smaller file size.",
     "NIKS-SHOW-AND-TELL.Settings.EnableDragDrop.Name": "Enable Drag & Drop",

@@ -77,11 +77,17 @@ export class ClipboardSystem {
                 fileCount: dt.files?.length ?? 0
             });
 
+            // Standardized helper to check if event target is chat input or drop
+            const isChatTarget = event.type === "drop" || (event.target && (event.target.id === "chat-message" || event.target.closest("#chat-message")));
+
             let file = null;
+            let hasImageItem = false;
+
             if (dt.items) {
                 for (const item of dt.items) {
                     debugLog("DataTransfer item:", { kind: item.kind, type: item.type });
                     if (item.kind === "file" && item.type.startsWith("image/")) {
+                        hasImageItem = true;
                         file = item.getAsFile();
                         debugLog("getAsFile() result:", {
                             isNull: file === null,
@@ -102,12 +108,11 @@ export class ClipboardSystem {
             }
             if (!file && dt.files?.length) {
                 file = Array.from(dt.files).find(f => f.type.startsWith("image/"));
+                if (file) hasImageItem = true;
                 debugLog("Fallback to dt.files:", { found: !!file, name: file?.name, size: file?.size });
             }
 
-            // --- Fallback: extract image URL from text/html ---
-            // Chrome "Copy Image" always puts <img src="ORIGINAL_URL"> in
-            // text/html, even when the raw bitmap blob is unavailable.
+            // --- Fallback 1: extract image URL from text/html ---
             if (!file) {
                 const html = dt.getData("text/html") || "";
                 if (html) {
@@ -116,8 +121,7 @@ export class ClipboardSystem {
                         const img = doc.querySelector("img[src]");
                         if (img?.src && /^https?:\/\//i.test(img.src)) {
                             debugLog("Extracted image URL from text/html:", img.src);
-                            const isChat = event.type === "drop" || (event.target.id === "chat-message" || event.target.closest("#chat-message"));
-                            if (isChat) {
+                            if (isChatTarget) {
                                 event.preventDefault();
                                 event.stopImmediatePropagation();
                                 return ClipboardSystem.showPasteMenuForSource({ dataUrl: img.src });
@@ -129,37 +133,34 @@ export class ClipboardSystem {
                 }
             }
 
-            // --- Fallback: image URL from text/plain ---
+            // --- Fallback 2: image URL from text/plain ---
             if (!file) {
                 const plain = dt.getData("text/plain") || "";
                 if (plain) {
                     const imgExts = "jpg|jpeg|png|gif|svg|webp|avif|bmp|tiff|ico";
-                    // Match direct image URLs (with or without query params)
                     const urlRegex = new RegExp(`^https?:\\/\\/[^\\s"']+\\.(${imgExts})(\\?[^\\s"']*)?$`, "i");
 
-                    const isChat = event.type === "drop" || (event.target.id === "chat-message" || event.target.closest("#chat-message"));
-
-                    if (isChat && urlRegex.test(plain)) {
+                    if (isChatTarget && urlRegex.test(plain)) {
                         debugLog("URL image paste detected from text/plain:", plain);
                         event.preventDefault();
                         event.stopImmediatePropagation();
                         return ClipboardSystem.showPasteMenuForSource({ dataUrl: plain });
                     }
-                }
 
-                // Check for local file paths (security warning)
-                if ((plain.startsWith("file:") || /^[A-Za-z]:\\/.test(plain)) &&
-                    (event.target.id === "chat-message" || event.target.closest("#chat-message"))) {
-                    ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.LocalFile"));
+                    // Check for local file paths (security warning)
+                    if ((plain.startsWith("file:") || /^[A-Za-z]:\\/.test(plain)) && isChatTarget) {
+                        ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.LocalFile"));
+                    }
                 }
+            }
 
-                // --- Last resort: Async Clipboard API ---
+            // --- Fallback 3: Async Clipboard API (hoisted outside if (plain)) ---
+            if (!file) {
                 try {
                     const asyncDataUrl = await ImageShareUtils.imageFromClipboard();
                     if (asyncDataUrl) {
                         debugLog("Async Clipboard API provided image data");
-                        const isChatAsync = event.type === "drop" || (event.target.id === "chat-message" || event.target.closest("#chat-message"));
-                        if (isChatAsync) {
+                        if (isChatTarget) {
                             event.preventDefault();
                             event.stopImmediatePropagation();
                             return ClipboardSystem.showPasteMenuForSource({ dataUrl: asyncDataUrl });
@@ -168,15 +169,10 @@ export class ClipboardSystem {
                 } catch (asyncErr) {
                     debugLog("Async Clipboard API fallback failed:", asyncErr.message);
                 }
-
-                return;
             }
 
-            // If we have a file, process it
+            // --- If we have a file, process it ---
             if (file) {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-
                 // Capture metadata synchronously before any await
                 const originalName = file.name || "";
                 const originalType = file.type || "image/png";
@@ -187,16 +183,6 @@ export class ClipboardSystem {
                     originalSize: file.size
                 });
 
-                // Immediately read the file data into a data URL to prevent
-                // clipboard data from being garbage-collected during async operations.
-                // This is critical on Windows/Chrome where "Copy Image" clipboard data
-                // can become invalidated after the synchronous paste handler returns.
-                //
-                // FileReader.readAsDataURL (used by fileToDataURL) begins reading
-                // synchronously in the same microtask, which keeps the blob reference
-                // alive. In contrast, file.arrayBuffer() is fully promise-based and
-                // may not begin the actual read until the next microtask, by which
-                // time Chrome can GC the clipboard data.
                 let rawDataUrl;
                 try {
                     rawDataUrl = await ImageShareUtils.fileToDataURL(file);
@@ -207,6 +193,9 @@ export class ClipboardSystem {
                 } catch (readErr) {
                     console.warn("Nik's Show & Tell | Failed to read clipboard file:", readErr);
                     debugLog("fileToDataURL failed:", readErr.message);
+                    if (hasImageItem) {
+                        ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.PasteFailed"));
+                    }
                     return;
                 }
 
@@ -218,8 +207,15 @@ export class ClipboardSystem {
                         isDataOnly: rawDataUrl === "data:",
                         length: rawDataUrl?.length
                     });
+                    if (hasImageItem) {
+                        ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.PasteFailed"));
+                    }
                     return;
                 }
+
+                // Only prevent default and stop propagation AFTER verifying valid image data!
+                event.preventDefault();
+                event.stopImmediatePropagation();
 
                 // Reconstruct a stable File from the data URL so we have a
                 // fully self-contained copy immune to clipboard GC
@@ -239,6 +235,7 @@ export class ClipboardSystem {
                 }
 
                 // Compress!
+                let dataUrl = rawDataUrl; // Reuse rawDataUrl by default
                 try {
                     const compressedBlob = await ImageShareUtils.compressImage(stableFile);
                     if (compressedBlob && compressedBlob.size > 0) {
@@ -249,6 +246,7 @@ export class ClipboardSystem {
                             newName += ".webp";
                         }
                         stableFile = new File([compressedBlob], newName, { type: "image/webp" });
+                        dataUrl = await ImageShareUtils.fileToDataURL(stableFile);
                         debugLog("Compression complete:", {
                             newName,
                             originalSize: stableFile.size,
@@ -263,13 +261,17 @@ export class ClipboardSystem {
                     debugLog("Compression error:", e.message);
                 }
 
-                const dataUrl = await ImageShareUtils.fileToDataURL(stableFile);
                 debugLog("Final dataUrl for dialog:", {
                     length: dataUrl?.length,
                     fileSize: stableFile.size,
                     fileType: stableFile.type
                 });
                 return ClipboardSystem.showPasteMenuForSource({ file: stableFile, dataUrl });
+            }
+
+            // User attempted paste/drop with an image item, but all extraction methods failed
+            if (hasImageItem) {
+                ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.PasteFailed"));
             }
         } catch (err) {
             console.error("Nik's Show & Tell | Paste/Drop Error:", err);
