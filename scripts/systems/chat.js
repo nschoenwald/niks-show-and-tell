@@ -19,17 +19,19 @@ export class ChatSystem {
     }
 
     static async toChat(src, caption = "") {
+        const normalizedSrc = ImageShareUtils.normalizeSrc(src);
         if (game.settings.get(MODULE_ID, SETTINGS.ADVANCED_TO_CHAT)) {
-            ChatSystem.toChatWithDialog(src, caption);
+            ChatSystem.toChatWithDialog(normalizedSrc, caption);
         } else {
             await ChatMessage.create({
-                content: ChatSystem.formatImageHtml(src, caption)
+                content: ChatSystem.formatImageHtml(normalizedSrc, caption)
             }, { imageShareContextSkip: true });
         }
     }
 
     static toChatWithDialog(src, caption = "") {
-        const contentHTML = ChatSystem.getDialogContentHTML(src, caption);
+        const normalizedSrc = ImageShareUtils.normalizeSrc(src);
+        const contentHTML = ChatSystem.getDialogContentHTML(normalizedSrc, caption);
 
         new foundry.applications.api.DialogV2({
             window: { title: game.i18n.localize("NIKS-SHOW-AND-TELL.Dialog.SendToChat.Title") },
@@ -44,7 +46,7 @@ export class ChatSystem {
                     callback: async (event, button) => {
                         const newCaption = button.form.querySelector(`[name="caption"]`).value || "";
                         await ChatMessage.create({
-                            content: ChatSystem.formatImageHtml(src, newCaption)
+                            content: ChatSystem.formatImageHtml(normalizedSrc, newCaption)
                         }, { imageShareContextSkip: true });
                         return true;
                     }
@@ -59,7 +61,7 @@ export class ChatSystem {
                             e.getAttribute("data-player")
                         );
                         await ChatMessage.create({
-                            content: ChatSystem.formatImageHtml(src, newCaption),
+                            content: ChatSystem.formatImageHtml(normalizedSrc, newCaption),
                             whisper: players
                         }, { imageShareContextSkip: true });
                         return true;
@@ -70,7 +72,8 @@ export class ChatSystem {
     }
 
     static formatImageHtml(src, caption = "") {
-        const safeSrc = ImageShareUtils.escapeAttr(src);
+        const normalizedSrc = ImageShareUtils.normalizeSrc(src);
+        const safeSrc = ImageShareUtils.escapeAttr(normalizedSrc);
         let html = `<img class="niks-show-and-tell-chat-image" data-src="${safeSrc}" src="${safeSrc}">`;
         if (caption) {
             const safeCaption = ImageShareUtils.escapeAttr(caption);

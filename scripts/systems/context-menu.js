@@ -24,7 +24,8 @@ export class ContextMenuSystem {
     }
 
     static showContextMenu(event) {
-        const src = event.target.currentSrc || event.target.src || event.target.getAttribute("src");
+        const rawSrc = event.target.currentSrc || event.target.src || event.target.getAttribute("src");
+        const src = ImageShareUtils.normalizeSrc(rawSrc);
         document.querySelectorAll(".niks-show-and-tell-menu").forEach((el) => el.remove());
 
         const contextmenu = document.createElement("div");

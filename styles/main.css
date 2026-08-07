@@ -2,7 +2,8 @@
 .niks-show-and-tell-menu {
     position: fixed;
     z-index: 9999;
-    background: var(--background-url, url('/ui/parchment.jpg')) repeat;
+    background-image: url('/ui/parchment.jpg');
+    background-repeat: repeat;
     background-color: #ece9df;
     border: 1px solid var(--color-border-dark);
     box-shadow: 0 0 10px #000;
@@ -54,7 +55,7 @@
     object-fit: contain;
     border-radius: 4px;
     border: 1px solid var(--color-border-light-2);
-    background: var(--background-url-dark, #2a2a2a);
+    background-color: #2a2a2a;
 }
 
 .niks-show-and-tell-dialog .caption-input {

@@ -23,6 +23,29 @@ export class ImageShareUtils {
     }
 
     /**
+     * Normalize an image source path.
+     * If the path is a full URL pointing to the local Foundry server origin,
+     * convert it to a relative path (e.g. "ui/backgrounds/setup.webp") so that
+     * other connected players on different IP/domain endpoints can load it cleanly.
+     * @param {string} src
+     * @returns {string}
+     */
+    static normalizeSrc(src) {
+        if (!src) return "";
+        if (src.startsWith("data:") || src.startsWith("blob:")) return src;
+
+        try {
+            const url = new URL(src, document.baseURI);
+            if (url.origin === location.origin) {
+                return (url.pathname + url.search + url.hash).replace(/^\/+/, "");
+            }
+            return url.href;
+        } catch {
+            return src.replace(/^\/+/, "");
+        }
+    }
+
+    /**
      * Escape a string for safe insertion into an HTML attribute value.
      */
     static escapeAttr(str) {
