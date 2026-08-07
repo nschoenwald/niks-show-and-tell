@@ -6,7 +6,12 @@
 
 - **Local Path Normalization for Remote Players**: Fixed an issue where right-clicking and sharing local Foundry images (such as core UI backgrounds, system icons, or local uploads) produced full `http://localhost:30000/...` or `127.0.0.1` URLs in chat messages, resulting in broken image icons for remote players. Local server origins are now stripped into standard relative asset paths (`ui/backgrounds/setup.webp`), enabling all connected players to resolve and view shared images cleanly.
 - **CSS Relative URL 404 Prevention**: Fixed console `404 (Not Found)` errors for `modules/niks-show-and-tell/ui/backgrounds/setup.webp` by removing core CSS variables containing relative URLs from module styles.
-- **Synchronous Event Cancellation**: Fixed an issue where pasting an image into the chat input field produced a broken image placeholder in the chat input alongside the "Send Image to Chat" dialog. `paste` and `drop` events are now intercepted synchronously before async image processing.
+
+## 14.8.4
+
+### Fixed: Chat Input Broken Image Placeholder on Paste
+
+- **Synchronous Event Cancellation**: Fixed an issue where pasting an image into the chat input field produced a broken image placeholder in the chat message input alongside the "Send Image to Chat" dialog. Synchronously intercepts paste and drop events before async file reading/compression, immediately preventing browser default paste insertion into the chat textarea.
 
 ## 14.8.2
 
