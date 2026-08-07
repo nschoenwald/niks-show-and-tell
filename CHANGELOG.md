@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.8.4
+
+### Fixed: Chat Input Broken Image Placeholder on Paste
+
+- **Synchronous Event Cancellation**: Fixed an issue where pasting an image into the chat input field produced a broken image placeholder in the chat message input alongside the "Send Image to Chat" dialog. Synchronously intercepts `paste` and `drop` events before async file reading/compression, immediately preventing browser default paste insertion into the chat textarea.
+
 ## 14.8.2
 
 ### Fixed: Image Pasting & Copying Reliability Improvements

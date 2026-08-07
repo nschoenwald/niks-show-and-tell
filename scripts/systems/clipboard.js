@@ -113,6 +113,7 @@ export class ClipboardSystem {
             }
 
             // --- Fallback 1: extract image URL from text/html ---
+            let htmlImageUrl = null;
             if (!file) {
                 const html = dt.getData("text/html") || "";
                 if (html) {
@@ -122,9 +123,7 @@ export class ClipboardSystem {
                         if (img?.src && /^https?:\/\//i.test(img.src)) {
                             debugLog("Extracted image URL from text/html:", img.src);
                             if (isChatTarget) {
-                                event.preventDefault();
-                                event.stopImmediatePropagation();
-                                return ClipboardSystem.showPasteMenuForSource({ dataUrl: img.src });
+                                htmlImageUrl = img.src;
                             }
                         }
                     } catch (htmlErr) {
@@ -134,7 +133,8 @@ export class ClipboardSystem {
             }
 
             // --- Fallback 2: image URL from text/plain ---
-            if (!file) {
+            let plainImageUrl = null;
+            if (!file && !htmlImageUrl) {
                 const plain = dt.getData("text/plain") || "";
                 if (plain) {
                     const imgExts = "jpg|jpeg|png|gif|svg|webp|avif|bmp|tiff|ico";
@@ -142,9 +142,7 @@ export class ClipboardSystem {
 
                     if (isChatTarget && urlRegex.test(plain)) {
                         debugLog("URL image paste detected from text/plain:", plain);
-                        event.preventDefault();
-                        event.stopImmediatePropagation();
-                        return ClipboardSystem.showPasteMenuForSource({ dataUrl: plain });
+                        plainImageUrl = plain;
                     }
 
                     // Check for local file paths (security warning)
@@ -152,6 +150,22 @@ export class ClipboardSystem {
                         ui.notifications.warn(game.i18n.localize("NIKS-SHOW-AND-TELL.Notifications.LocalFile"));
                     }
                 }
+            }
+
+            // Prevent default SYNCHRONOUSLY before any async calls yield control back to the browser event loop!
+            // If default action is not prevented synchronously, the browser pastes the image payload (or broken img placeholder) into chat input.
+            const shouldIntercept = !!file || !!htmlImageUrl || !!plainImageUrl || (hasImageItem && isChatTarget);
+            if (shouldIntercept) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+
+            if (!file && htmlImageUrl) {
+                return ClipboardSystem.showPasteMenuForSource({ dataUrl: htmlImageUrl });
+            }
+
+            if (!file && plainImageUrl) {
+                return ClipboardSystem.showPasteMenuForSource({ dataUrl: plainImageUrl });
             }
 
             // --- Fallback 3: Async Clipboard API (hoisted outside if (plain)) ---
@@ -212,10 +226,6 @@ export class ClipboardSystem {
                     }
                     return;
                 }
-
-                // Only prevent default and stop propagation AFTER verifying valid image data!
-                event.preventDefault();
-                event.stopImmediatePropagation();
 
                 // Reconstruct a stable File from the data URL so we have a
                 // fully self-contained copy immune to clipboard GC
