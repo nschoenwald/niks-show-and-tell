@@ -25,8 +25,9 @@ export class ImageShareUtils {
     /**
      * Normalize an image source path.
      * If the path is a full URL pointing to the local Foundry server origin,
-     * convert it to a relative path (e.g. "ui/backgrounds/setup.webp") so that
-     * other connected players on different IP/domain endpoints can load it cleanly.
+     * convert it to a root-relative path starting with "/" (e.g. "/ui/backgrounds/setup.webp")
+     * so that other connected players on different IP/domain endpoints can load it cleanly
+     * and ImagePopout resolves correctly regardless of current page route (/game).
      * @param {string} src
      * @returns {string}
      */
@@ -37,11 +38,12 @@ export class ImageShareUtils {
         try {
             const url = new URL(src, document.baseURI);
             if (url.origin === location.origin) {
-                return (url.pathname + url.search + url.hash).replace(/^\/+/, "");
+                const path = url.pathname + url.search + url.hash;
+                return path.startsWith("/") ? path : "/" + path;
             }
             return url.href;
         } catch {
-            return src.replace(/^\/+/, "");
+            return src.startsWith("/") ? src : "/" + src;
         }
     }
 
