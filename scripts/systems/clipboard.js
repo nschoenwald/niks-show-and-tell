@@ -292,6 +292,12 @@ export class ClipboardSystem {
     static async showPasteMenuForSource({ file, dataUrl, name } = {}) {
         if (!dataUrl && file) dataUrl = await ImageShareUtils.fileToDataURL(file);
 
+        // Allow other modules to intercept the paste/drop before the upload dialog appears.
+        // Handlers receive (dataUrl, file) — file may be null for URL-only pastes.
+        // Return false to suppress the dialog entirely (e.g. to route the image elsewhere).
+        const continuePaste = Hooks.call("niksShowAndTellPasteImage", dataUrl, file ?? null);
+        if (continuePaste === false) return;
+
         debugLog("showPasteMenuForSource:", {
             hasFile: !!file,
             fileSize: file?.size,
@@ -523,6 +529,8 @@ export class ClipboardSystem {
         }
 
         debugLog("Upload complete, path:", uploaded.path);
+        // Notify other modules that an image was successfully uploaded.
+        Hooks.callAll("niksShowAndTellImageUploaded", uploaded.path, fileToUpload);
         return uploaded.path;
     }
 }

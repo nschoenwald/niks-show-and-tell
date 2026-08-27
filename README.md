@@ -1,7 +1,7 @@
 # Nik's Show & Tell
 
 ![Foundry v13+](https://img.shields.io/badge/foundry-v13%2B-orange)
-![Latest Release](https://img.shields.io/badge/release-v14.8.1-blue)
+![Latest Release](https://img.shields.io/badge/release-v14.8.7-blue)
 
 **Nik's Show & Tell** is a module for Foundry VTT that makes sharing images with your players seamless and effortless. Whether it's a handout in a journal, a random image from the web, or a file on your computer, sharing it is just a click or a paste away.
 
@@ -37,6 +37,19 @@ Right-click on any image in Foundry (Journal Entries, Image Popouts, chat messag
 *   **Auto URL-to-Image**: Image URLs typed or pasted directly into chat messages are automatically converted into embedded images.
 *   **Whisper Support**: When sharing images, choose to show them to all players or whisper to specific ones.
 *   **Captions**: Add flavor text or descriptions to your images directly in the share dialog.
+
+### 🔗 Integration Hooks (for Module Developers)
+
+Nik's Show & Tell exposes Foundry hooks so other modules can integrate cleanly:
+
+| Hook | Args | Type | Description |
+|---|---|---|---|
+| `niksShowAndTellContextMenuOpen` | `(src)` | `callAll` | Fired when the right-click context menu opens for an image. |
+| `niksShowAndTellGetMenuButtons` | `(buttons, src)` | `callAll` | Fired when building the context menu. Push custom `{ name, icon, callback }` objects into `buttons`. |
+| `niksShowAndTellPasteImage` | `(dataUrl, file)` | `call` | Fired after clipboard/drop image data is resolved, before the upload dialog. Return `false` to suppress the dialog. `file` is `null` for URL-only pastes. |
+| `niksShowAndTellImageUploaded` | `(path, file)` | `callAll` | Fired after a successful upload with the final server path and uploaded `File`. |
+| `niksShowAndTellShareImage` | `(src, caption)` | `call` | Fired before any image is sent to chat (all entry points). Return `false` to cancel the share. |
+| `niksShowAndTellShared` | `(src, caption)` | `callAll` | Fired after an image is successfully posted to chat. |
 
 ### 🚀 Optimization & Quality of Life
 

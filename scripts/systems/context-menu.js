@@ -28,6 +28,9 @@ export class ContextMenuSystem {
         const src = ImageShareUtils.normalizeSrc(rawSrc);
         document.querySelectorAll(".niks-show-and-tell-menu").forEach((el) => el.remove());
 
+        // Notify other modules that the context menu is being shown for this image.
+        Hooks.callAll("niksShowAndTellContextMenuOpen", src);
+
         const contextmenu = document.createElement("div");
         contextmenu.className = "niks-show-and-tell-menu";
 
@@ -194,6 +197,10 @@ export class ContextMenuSystem {
                 }
             }
         ];
+
+        // Allow other modules to add or modify context menu buttons.
+        // Handlers receive (buttons, src) and can push new entries directly into the array.
+        Hooks.callAll("niksShowAndTellGetMenuButtons", buttons, src);
 
         return buttons;
     }

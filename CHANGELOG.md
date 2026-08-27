@@ -1,5 +1,18 @@
 # Changelog
 
+## 14.8.7
+
+### New: Integration Hooks for Third-Party Modules
+
+Added six Foundry hooks that allow other modules to cleanly integrate with Nik's Show & Tell without resorting to MutationObservers or monkey-patching.
+
+- **`niksShowAndTellContextMenuOpen` hook**: Fired in `showContextMenu` as soon as the right-click menu is triggered for an image. Handlers receive `(src)` — the normalized image path.
+- **`niksShowAndTellGetMenuButtons` hook**: Fired at the end of `getButtons(src)` in the context menu system. Handlers receive `(buttons, src)` — push additional `{ name, icon, callback }` objects directly into the array to add custom entries alongside the built-in ones.
+- **`niksShowAndTellPasteImage` hook**: Fired in `showPasteMenuForSource` after the image data is fully resolved but before the upload dialog is shown. Handlers receive `(dataUrl, file)` — `file` is `null` for URL-only pastes. Return `false` to suppress the dialog entirely, allowing another module to handle the image instead (e.g. route directly to a journal API).
+- **`niksShowAndTellImageUploaded` hook**: Fired in `uploadAndGetPath` after a successful upload. Handlers receive `(path, file)` where `path` is the final server path of the uploaded file. Useful for post-upload workflows such as adding the image to a timeline or gallery.
+- **`niksShowAndTellShareImage` hook**: Fired at the top of both `toChat` and `toChatWithDialog` before any chat message is created. Handlers receive `(src, caption)` where `src` is the already-normalized image path. Return `false` from any handler to cancel the share entirely, covering all entry points: the context menu quick-send, the advanced dialog, and clipboard paste / drag-drop flows.
+- **`niksShowAndTellShared` hook**: Fired after an image is successfully posted to the Foundry chat log, from every entry point (quick-send, "Show to All" dialog button, and "Whisper" dialog button). Handlers receive `(src, caption)`.
+
 ## 14.8.6
 
 ### Fixed: Image Popout ("Show" Button) Path Resolution

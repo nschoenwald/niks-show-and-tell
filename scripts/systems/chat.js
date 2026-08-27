@@ -20,17 +20,25 @@ export class ChatSystem {
 
     static async toChat(src, caption = "") {
         const normalizedSrc = ImageShareUtils.normalizeSrc(src);
+        // Allow other modules to intercept or suppress this share. Return false to cancel.
+        const continueShare = Hooks.call("niksShowAndTellShareImage", normalizedSrc, caption);
+        if (continueShare === false) return;
         if (game.settings.get(MODULE_ID, SETTINGS.ADVANCED_TO_CHAT)) {
             ChatSystem.toChatWithDialog(normalizedSrc, caption);
         } else {
             await ChatMessage.create({
                 content: ChatSystem.formatImageHtml(normalizedSrc, caption)
             }, { imageShareContextSkip: true });
+            // Notify other modules that an image was successfully shared to chat.
+            Hooks.callAll("niksShowAndTellShared", normalizedSrc, caption);
         }
     }
 
     static toChatWithDialog(src, caption = "") {
         const normalizedSrc = ImageShareUtils.normalizeSrc(src);
+        // Allow other modules to intercept or suppress this share. Return false to cancel.
+        const continueShare = Hooks.call("niksShowAndTellShareImage", normalizedSrc, caption);
+        if (continueShare === false) return;
         const contentHTML = ChatSystem.getDialogContentHTML(normalizedSrc, caption);
 
         new foundry.applications.api.DialogV2({
@@ -48,6 +56,7 @@ export class ChatSystem {
                         await ChatMessage.create({
                             content: ChatSystem.formatImageHtml(normalizedSrc, newCaption)
                         }, { imageShareContextSkip: true });
+                        Hooks.callAll("niksShowAndTellShared", normalizedSrc, newCaption);
                         return true;
                     }
                 },
@@ -64,6 +73,7 @@ export class ChatSystem {
                             content: ChatSystem.formatImageHtml(normalizedSrc, newCaption),
                             whisper: players
                         }, { imageShareContextSkip: true });
+                        Hooks.callAll("niksShowAndTellShared", normalizedSrc, newCaption);
                         return true;
                     }
                 }
