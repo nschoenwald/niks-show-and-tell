@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.8.8
+
+### Fixed: Custom Port & Loopback Path Normalization
+
+- **Custom Port & Loopback Support**: Fixed an issue where local path normalization failed when Foundry was configured to run on a custom port other than 30000 (e.g. 8080, 9000, 80, 443). `normalizeSrc()` now matches loopback hostnames (`localhost`, `127.0.0.1`, `0.0.0.0`, `::1`), custom server ports, and standard Foundry asset roots (`/ui/`, `/systems/`, `/modules/`, `/worlds/`, `/tokens/`, `/tiles/`, etc.), stripping local server origins cleanly regardless of port configuration.
+
 ## 14.8.7
 
 ### New: Integration Hooks for Third-Party Modules

@@ -24,9 +24,10 @@ export class ImageShareUtils {
 
     /**
      * Normalize an image source path.
-     * If the path is a full URL pointing to the local Foundry server origin,
+     * If the path is a full URL pointing to the local Foundry server origin, loopback host
+     * (localhost, 127.0.0.1, 0.0.0.0, ::1), or local asset path (regardless of custom port),
      * convert it to a root-relative path starting with "/" (e.g. "/ui/backgrounds/setup.webp")
-     * so that other connected players on different IP/domain endpoints can load it cleanly
+     * so that connected players on different IP/domain/port endpoints can load it cleanly
      * and ImagePopout resolves correctly regardless of current page route (/game).
      * @param {string} src
      * @returns {string}
@@ -37,7 +38,13 @@ export class ImageShareUtils {
 
         try {
             const url = new URL(src, document.baseURI);
-            if (url.origin === location.origin) {
+            const isLoopback = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(url.hostname);
+            const isSameOrigin = url.origin === location.origin;
+            const isSameHost = url.hostname === location.hostname;
+            const isSamePort = !!location.port && url.port === location.port;
+            const isFoundryAssetPath = /^\/(ui|systems|modules|worlds|tokens|tiles|cards|icons|assets|fonts|sounds|music)\//i.test(url.pathname);
+
+            if (isLoopback || isSameOrigin || isSameHost || (isSamePort && isFoundryAssetPath)) {
                 const path = url.pathname + url.search + url.hash;
                 return path.startsWith("/") ? path : "/" + path;
             }
