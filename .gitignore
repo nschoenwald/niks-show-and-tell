@@ -2,3 +2,8 @@
 .DS_Store
 .DS_Store
 .DS_Store
+
+# Markdown: ignore all, except the docs shipped with the module
+*.md
+!README.md
+!CHANGELOG.md
