@@ -1,0 +1,42 @@
+<div class="share-content">
+    <div class="share-body">
+        <img class="share-preview" src="{{previewUrl}}" alt="">
+
+        <input type="text" name="caption" value="{{caption}}" autocomplete="off"
+               placeholder="{{localize "NIKS-SHOW-AND-TELL.ShareDialog.CaptionPlaceholder"}}"
+               aria-label="{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Caption"}}">
+
+        {{#if chooseRecipients}}
+        <fieldset class="share-recipients">
+            <legend>{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Recipients"}}</legend>
+            <div class="recipient-picks">
+                <button type="button" data-action="pickRecipients" data-pick="players">{{localize "NIKS-SHOW-AND-TELL.ShareDialog.PickPlayers"}}</button>
+                <button type="button" data-action="pickRecipients" data-pick="gms">{{localize "NIKS-SHOW-AND-TELL.ShareDialog.PickGMs"}}</button>
+                <button type="button" data-action="pickRecipients" data-pick="none">{{localize "NIKS-SHOW-AND-TELL.ShareDialog.PickNone"}}</button>
+            </div>
+            <ul class="recipient-list">
+                {{#each users}}
+                <li class="recipient{{#unless active}} offline{{/unless}}">
+                    <label>
+                        <input type="checkbox" data-recipient="{{id}}" data-gm="{{isGM}}" {{checked selected}}>
+                        <span class="recipient-color" style="--recipient-color: {{color}}"></span>
+                        <span class="recipient-name">{{name}}</span>
+                        {{#if active}}<span class="recipient-online">{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Online"}}</span>{{/if}}
+                    </label>
+                </li>
+                {{else}}
+                <li class="recipient-empty">{{localize "NIKS-SHOW-AND-TELL.ShareDialog.NoOtherUsers"}}</li>
+                {{/each}}
+            </ul>
+        </fieldset>
+        {{/if}}
+
+        <p class="share-status" hidden></p>
+    </div>
+
+    <footer class="form-footer">
+        {{#each buttons}}
+        <button type="submit" value="{{value}}"><i class="{{icon}}" inert></i><span>{{label}}</span></button>
+        {{/each}}
+    </footer>
+</div>

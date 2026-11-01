@@ -1,0 +1,48 @@
+name: Release Module
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Extract Tag Version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Update module.json download URL
+        run: |
+          jq --arg url "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/module.zip" '.download = $url' module.json > tmp.json && mv tmp.json module.json
+
+      - name: Create Module Archive
+        run: |
+          files_to_zip=""
+          for f in module.json module scripts styles languages lang templates assets packs README.md LICENSE CHANGELOG.md changelog.md; do
+            if [ -e "$f" ]; then
+              files_to_zip="$files_to_zip $f"
+            fi
+          done
+          zip -r module.zip $files_to_zip
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            module.zip
+            module.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to Foundry VTT
+        uses: cs96and/FoundryVTT-release-package@v1
+        with:
+          package-token: ${{ secrets.FOUNDRY_PACKAGE_TOKEN }}
+          manifest-url: https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/module.json
