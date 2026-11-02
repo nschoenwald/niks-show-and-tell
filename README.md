@@ -90,6 +90,14 @@ Changes to the role and drag & drop settings take effect immediately, without re
 
 ---
 
+## Languages
+
+English, Deutsch, Français, Español, Italiano, Português (Brasil), 日本語, Polski and Čeština.
+
+The Japanese, Polish and Czech translations were written with AI help and may contain mistakes. Corrections are welcome as an issue or pull request.
+
+---
+
 ## Other Modules by Nik
 
 ### 🎲 D&D 5e Specific
