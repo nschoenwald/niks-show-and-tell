@@ -10,6 +10,7 @@ export const SETTINGS = {
     WEBP_QUALITY: "webpQuality",
     MAX_IMAGE_DIMENSION: "maxImageDimension",
     ENABLE_DRAG_DROP: "enableDragDrop",
+    PASTE_MODE: "pasteMode",
     CONTEXT_MENU_MODE: "contextMenuMode",
     CHAT_IMAGE_MAX_HEIGHT: "chatImageMaxHeight",
     LAST_WHISPER_TARGETS: "lastWhisperTargets",
@@ -34,6 +35,10 @@ const DEFINITIONS = {
     [SETTINGS.WEBP_QUALITY]: { scope: "world", type: Number, range: { min: 0.1, max: 1, step: 0.1 }, default: 0.8 },
     [SETTINGS.MAX_IMAGE_DIMENSION]: { scope: "world", type: Number, range: { min: 0, max: 8192, step: 256 }, default: 0 },
     [SETTINGS.ENABLE_DRAG_DROP]: { scope: "world", type: Boolean, default: true },
+    [SETTINGS.PASTE_MODE]: {
+        scope: "client", type: String, default: "anywhere",
+        choices: { anywhere: "Anywhere", chat: "Chat", off: "Off" }
+    },
     [SETTINGS.CONTEXT_MENU_MODE]: {
         scope: "client", type: String, default: "always",
         choices: { always: "Always", noSheets: "NoSheets", shift: "Shift", off: "Off" }

@@ -21,8 +21,8 @@ const overlay = { element: null, zone: null };
 
 /**
  * Sharing images by pasting them anywhere outside text fields, or into the chat input, and by
- * dropping them on the chat. Listeners are always installed; the role and drag & drop settings
- * are checked per event, so changing them takes effect without a reload.
+ * dropping them on the chat. Listeners are always installed; the role, paste and drag & drop
+ * settings are checked per event, so changing them takes effect without a reload.
  */
 export const PasteDrop = {
     init() {
@@ -71,6 +71,11 @@ async function handleTransfer(event, dt) {
     // Drops only get here from a chat drop zone; pastes count as chat when aimed at the chat input
     const chatTarget = event.type === "drop" || !!target?.closest("#chat-message");
     if (!chatTarget && target?.closest(EDITABLE)) return;
+    // Users who leave canvas pastes to another module (e.g. to create tiles) can limit pasting to the chat input
+    if (event.type === "paste") {
+        const mode = getSetting(SETTINGS.PASTE_MODE);
+        if (mode === "off" || (mode === "chat" && !chatTarget)) return;
+    }
 
     const contents = readTransfer(dt, chatTarget);
     log.debug(`${event.type} received:`, contents);

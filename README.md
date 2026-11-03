@@ -29,7 +29,7 @@ Right-click on any image in Foundry (Journal Entries, Image Popouts, chat messag
 
 ### 📋 Clipboard & Drag/Drop
 
-*   **Paste to Share**: Press `Ctrl+V` (or `Cmd+V`) anywhere to paste an image from your clipboard. A single dialog shows a preview and lets you add a caption and pick who sees it (everyone or a whisper) — the image is uploaded when you post it. If the upload fails, the dialog stays open so you can retry. Pasting into other text fields or editors (e.g. journal pages) works as normal and is not intercepted.
+*   **Paste to Share**: Press `Ctrl+V` (or `Cmd+V`) anywhere to paste an image from your clipboard. A single dialog shows a preview and lets you add a caption and pick who sees it (everyone or a whisper) — the image is uploaded when you post it. If the upload fails, the dialog stays open so you can retry. Pasting into other text fields or editors (e.g. journal pages) works as normal and is not intercepted. If another module handles pasting on the canvas (e.g. to create tiles), set **Paste Images** to "Only in the chat input".
 *   **Drag & Drop**: Drag an image file (or an image from a web page) onto the Chat Log — including a popped-out chat — or the chat input to upload and share it.
 *   **No Duplicate Uploads**: Images that are already on your Foundry server (e.g. dragged or copied from a journal) are shared directly instead of being uploaded again.
 *   **Players Without Upload Permission**: Optionally, a connected GM's client can upload pasted images for players who aren't allowed to upload files themselves. Players who can't upload at all are told right away when they paste.
@@ -83,10 +83,11 @@ Nik's Show & Tell exposes Foundry hooks so other modules can integrate cleanly:
 *   **WebP Compression Quality**: Adjust the compression level (0.1 – 1.0). Lower values produce smaller files. Default is 0.8.
 *   **Maximum Image Size**: When compressing, shrink images whose longest side exceeds this many pixels (e.g. 2048 for 4K screenshots). 0 keeps the original size (default).
 *   **Enable Drag & Drop**: Toggle drag-and-drop image support on the chat log.
+*   **Paste Images** (per user): Share pasted images anywhere outside text fields (default), only when pasting into the chat input, or never. "Only in the chat input" leaves pastes on the canvas to other modules.
 *   **Image Right-Click Menu** (per user): Open the Show & Tell menu always, everywhere except character/item sheets, only while holding Shift, or never.
 *   **Chat Image Maximum Height** (per user): Maximum height of images shared in chat, in pixels. Set to 0 for no limit.
 
-Changes to the role and drag & drop settings take effect immediately, without reloading.
+Changes to the role, paste and drag & drop settings take effect immediately, without reloading.
 
 ---
 
