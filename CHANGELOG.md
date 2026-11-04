@@ -1,5 +1,9 @@
 # Changelog
 
+## 14.14.1
+
+- Removed the French, Spanish, Italian, Brazilian Portuguese, Japanese, Polish and Czech translations. They were machine-translated and never checked by a native speaker. Players who use Foundry in one of these languages now see this module in English. Translations by native speakers are welcome as an issue or pull request.
+
 ## 14.14.0
 
 - New per-user setting **Paste Images**: share pasted images anywhere (as before), only when pasting into the chat input, or never. Choose "Only in the chat input" if you use another module that turns pasted images into tiles or scenes, so its paste dialog opens again.

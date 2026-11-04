@@ -11,7 +11,7 @@
 
 - **Foundry VTT**: V13 – V14
 - **System**: System-agnostic (works with any game system)
-- **Languages**: Nine languages, see [Languages](#languages). Foundry shows the module in the language set under *Configure Settings → Language*; any text not yet translated falls back to English.
+- **Languages**: English and German, see [Languages](#languages). Foundry shows the module in the language set under *Configure Settings → Language*; any text not yet translated falls back to English.
 ---
 
 ## Features
@@ -93,9 +93,9 @@ Changes to the role, paste and drag & drop settings take effect immediately, wit
 
 ## Languages
 
-🇬🇧 English · 🇩🇪 Deutsch · 🇫🇷 Français · 🇪🇸 Español · 🇮🇹 Italiano · 🇧🇷 Português (Brasil) · 🇯🇵 日本語 · 🇵🇱 Polski · 🇨🇿 Čeština
+🇬🇧 English · 🇩🇪 Deutsch
 
-The Japanese, Polish and Czech translations were written with AI help and may contain mistakes. Corrections are welcome as an issue or pull request.
+Translations into other languages by native speakers are welcome as an issue or pull request.
 
 ---
 
