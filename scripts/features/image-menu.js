@@ -192,7 +192,7 @@ function entriesFor(src, img) {
         // GM-only, like the "Show Players" button of Foundry's own image popout. data:/blob: images
         // only exist in this browser, so other users couldn't load them.
         (game.user.isGM && !localOnly) && {
-            id: "showPlayers", label: localize("Menu.ShowPlayers"), icon: "fa-solid fa-display", callback: () => showToPlayers(src, img)
+            id: "showPlayers", label: localize("Menu.ShowPlayers"), icon: "fa-solid fa-display", callback: () => Sharing.showImage(src, imageTitle(src, img))
         },
         { id: "postToChat", label: localize("Menu.PostToChat"), icon: "fa-solid fa-comment", callback: () => Sharing.shareImage(src) },
         { id: "copyLink", label: localize("Menu.CopyLink"), icon: "fa-solid fa-link", callback: () => copyLink(src) },
@@ -214,11 +214,6 @@ function imageTitle(src, img) {
 
 function viewImage(src, img) {
     new foundry.applications.apps.ImagePopout({ src, window: { title: imageTitle(src, img) } }).render({ force: true });
-}
-
-/** Pop the image up on every connected user's screen, using Foundry's own image sharing. */
-function showToPlayers(src, img) {
-    new foundry.applications.apps.ImagePopout({ src, window: { title: imageTitle(src, img) } }).shareImage();
 }
 
 /**

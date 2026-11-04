@@ -1,5 +1,9 @@
 # Changelog
 
+## 14.16.0
+
+- **Show to Players** now opens a dialog where you choose who sees the image: everyone, or only selected users (with the same Players / GMs / None buttons as for whispers). Only users who are currently connected are listed, and the list updates when someone joins or leaves. You can also add a caption, which appears below the image. Your last selection is remembered. Press Enter to show the image to everyone right away.
+
 ## 14.15.0
 
 - The module settings are now grouped into sections: Sharing, Uploads, Compression and Your Preferences. Maximum Image Size is greyed out while compression is off.

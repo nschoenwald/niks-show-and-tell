@@ -6,7 +6,9 @@ import { Sharing } from "./sharing.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * The share dialog: image preview, caption and the recipient list with "Post Publicly" / "Whisper" buttons.
+ * The share dialog: image preview, caption and a recipient list. In "post" mode it posts the image to chat
+ * ("Post Publicly" / "Whisper"); in "show" mode it pops the image up on users' screens
+ * ("Show to Everyone" / "Show to Selected").
  *
  * The dialog stays open until the image is posted, so a failed upload can be retried.
  * Only one share dialog is open at a time.
@@ -22,10 +24,14 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
      * @param {string} [config.caption]   Initial caption
      * @param {boolean} [config.needsUpload]  The image is uploaded when it is shared
      * @param {Function} [config.onClose]  Called once when the dialog closes
+     * @param {"post"|"show"} [config.mode]  Post to chat, or show in a popout
+     * @param {string} [config.imageTitle]  Popout window title in "show" mode
      * @param {object} [options]  ApplicationV2 options
      */
-    constructor({ previewUrl, resolvePath, caption = "", needsUpload = false, onClose }, options = {}) {
+    constructor({ previewUrl, resolvePath, caption = "", needsUpload = false, onClose, mode = "post", imageTitle = "" }, options = {}) {
         super(options);
+        this.#mode = mode;
+        this.#imageTitle = imageTitle;
         this.#previewUrl = previewUrl;
         this.#resolvePath = resolvePath;
         this.#caption = caption;
@@ -38,7 +44,13 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     #caption;
     #needsUpload;
     #onCloseCallback;
+    #mode;
+    #imageTitle;
     #busy = false;
+    /** Recipients ticked before a re-render; null until the first re-render, then the saved selection is used. */
+    #selected = null;
+    /** Hook ID of the userConnected listener in "show" mode. */
+    #connectionHook = null;
 
     static DEFAULT_OPTIONS = {
         classes: [`${MODULE_ID}-share-dialog`],
@@ -68,16 +80,20 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
     /** @override */
     get title() {
+        if (this.#mode === "show") return localize("ShareDialog.TitleShow");
         return localize(this.#needsUpload ? "ShareDialog.TitleUpload" : "ShareDialog.Title");
     }
 
     /** @override */
     async _prepareContext(options) {
         const context = await super._prepareContext(options);
-        const lastTargets = new Set(getSetting(SETTINGS.LAST_WHISPER_TARGETS) ?? []);
+        const show = this.#mode === "show";
+        const selected = this.#selected
+            ?? new Set(getSetting(show ? SETTINGS.LAST_SHOW_TARGETS : SETTINGS.LAST_WHISPER_TARGETS) ?? []);
         // All other users, GMs included, so GMs can whisper each other. Connected users first.
+        // Showing only reaches connected clients and isn't delivered later, so "show" mode lists only those.
         const users = game.users
-            .filter((u) => u !== game.user)
+            .filter((u) => (u !== game.user) && (!show || u.active))
             .sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name, game.i18n.lang))
             .map((u) => ({
                 id: u.id,
@@ -85,13 +101,28 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
                 isGM: u.isGM,
                 active: u.active,
                 color: u.color?.css ?? "#888888",
-                selected: lastTargets.has(u.id)
+                selected: selected.has(u.id)
             }));
+        const disabled = show && !users.length;
+
+        // The first button is the default, used when Enter is pressed in the caption field
+        const buttons = show
+            ? [
+                { value: "all", icon: "fa-solid fa-users", label: localize("ShareDialog.ShowEveryone"), disabled },
+                { value: "selected", icon: "fa-solid fa-eye", label: localize("ShareDialog.ShowSelected"), disabled }
+            ]
+            : [
+                { value: "all", icon: "fa-solid fa-users", label: localize("ShareDialog.PostPublicly") },
+                { value: "selected", icon: "fa-solid fa-user-secret", label: localize("ShareDialog.Whisper") }
+            ];
 
         return Object.assign(context, {
             previewUrl: this.#previewUrl,
             caption: this.#caption,
-            users
+            recipientsLabel: localize(show ? "ShareDialog.ShowRecipients" : "ShareDialog.Recipients"),
+            emptyLabel: localize(show ? "ShareDialog.NoConnectedUsers" : "ShareDialog.NoOtherUsers"),
+            users,
+            buttons
         });
     }
 
@@ -102,8 +133,28 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     /** @override */
+    async _onFirstRender(context, options) {
+        await super._onFirstRender(context, options);
+        if (this.#mode === "show") this.#connectionHook = Hooks.on("userConnected", () => this.#refreshRecipients());
+    }
+
+    /**
+     * Re-render the recipient list when a user connects or disconnects, keeping the caption and the ticked users.
+     * Skipped while the image is being shown, so the busy state isn't reset.
+     */
+    #refreshRecipients() {
+        if (this.#busy || !this.rendered) return;
+        const form = this.element;
+        this.#caption = form.elements.caption?.value ?? this.#caption;
+        this.#selected = new Set(Array.from(form.querySelectorAll("input[data-recipient]:checked"), (box) => box.dataset.recipient));
+        this.render();
+    }
+
+    /** @override */
     _onClose(options) {
         super._onClose(options);
+        if (this.#connectionHook !== null) Hooks.off("userConnected", this.#connectionHook);
+        this.#connectionHook = null;
         if (ShareDialog.#current === this) ShareDialog.#current = null;
         this.#onCloseCallback?.();
         this.#onCloseCallback = null;
@@ -124,7 +175,7 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     /**
-     * Post the image. Enter in the caption field submits with the first (public) button.
+     * Post or show the image. Enter in the caption field submits with the first ("all") button.
      * @this {ShareDialog}
      * @param {SubmitEvent} event
      * @param {HTMLFormElement} form
@@ -132,11 +183,12 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     static async #onSubmit(event, form) {
         if (this.#busy) return;
         const caption = form.elements.caption?.value.trim() ?? "";
-        let whisper;
-        if (event.submitter?.value === "whisper") {
-            whisper = Array.from(form.querySelectorAll("input[data-recipient]:checked"), (box) => box.dataset.recipient);
-            // An empty whisper list would post the image publicly
-            if (!whisper.length) return ui.notifications.warn(localize("Notifications.NoWhisperTargets"));
+        const show = this.#mode === "show";
+        let users;
+        if (event.submitter?.value === "selected") {
+            users = Array.from(form.querySelectorAll("input[data-recipient]:checked"), (box) => box.dataset.recipient);
+            // An empty list would post or show the image to everyone
+            if (!users.length) return ui.notifications.warn(localize(show ? "Notifications.NoShowTargets" : "Notifications.NoWhisperTargets"));
         }
 
         this.#setBusy(true, event.submitter);
@@ -148,7 +200,8 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
             return notifyError(err, "Notifications.UploadFailed");
         }
         try {
-            await Sharing.post(path, caption, whisper);
+            if (show) Sharing.show(path, { title: this.#imageTitle, caption, users });
+            else await Sharing.post(path, caption, users);
         } catch (err) {
             this.#setBusy(false);
             return notifyError(err, "Notifications.ShareFailed");

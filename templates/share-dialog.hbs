@@ -7,7 +7,7 @@
                aria-label="{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Caption"}}">
 
         <fieldset class="share-recipients">
-            <legend>{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Recipients"}}</legend>
+            <legend>{{recipientsLabel}}</legend>
             <div class="recipient-picks">
                 <button type="button" data-action="pickRecipients" data-pick="players">{{localize "NIKS-SHOW-AND-TELL.ShareDialog.PickPlayers"}}</button>
                 <button type="button" data-action="pickRecipients" data-pick="gms">{{localize "NIKS-SHOW-AND-TELL.ShareDialog.PickGMs"}}</button>
@@ -24,7 +24,7 @@
                     </label>
                 </li>
                 {{else}}
-                <li class="recipient-empty">{{localize "NIKS-SHOW-AND-TELL.ShareDialog.NoOtherUsers"}}</li>
+                <li class="recipient-empty">{{emptyLabel}}</li>
                 {{/each}}
             </ul>
         </fieldset>
@@ -33,7 +33,8 @@
     </div>
 
     <footer class="form-footer">
-        <button type="submit" value="public"><i class="fa-solid fa-users" inert></i><span>{{localize "NIKS-SHOW-AND-TELL.ShareDialog.PostPublicly"}}</span></button>
-        <button type="submit" value="whisper"><i class="fa-solid fa-user-secret" inert></i><span>{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Whisper"}}</span></button>
+        {{#each buttons}}
+        <button type="submit" value="{{value}}" {{disabled disabled}}><i class="{{icon}}" inert></i><span>{{label}}</span></button>
+        {{/each}}
     </footer>
 </div>

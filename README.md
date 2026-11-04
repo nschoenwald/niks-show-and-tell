@@ -21,7 +21,7 @@
 Right-click on any image in Foundry (Journal Entries, Image Popouts, chat messages, etc.) to access the Show & Tell menu. It can also be used with the keyboard: arrow keys move between entries, Enter chooses one, Escape closes the menu.
 
 *   **View**: Open the image in a full-size viewer.
-*   **Show to Players** (GM only): Pop the image up on every connected player's screen — great for handouts — without posting it to chat.
+*   **Show to Players** (GM only): Pop the image up on players' screens — great for handouts — without posting it to chat. A dialog lets you add a caption and show the image to everyone or only to selected users, with the same quick-pick buttons as whispers. Only connected users are listed, since a shown image isn't delivered later; the list updates when someone connects or disconnects. Your last selection is preselected.
 *   **Post to Chat**: Share the image to the chat log — post it for everyone or whisper it to specific users, with an optional caption.
 *   **Copy Link**: Copy the image's link to your clipboard.
 *   **Copy Image**: Copy the image itself to your clipboard (as PNG, the format browsers can copy). Animated images copy their link instead, so the animation isn't lost.

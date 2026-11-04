@@ -59,6 +59,30 @@ export const Sharing = {
     },
 
     /**
+     * Choose who to show an image to, then pop it up on their screens. GM only.
+     * @param {string} src     Server path or web URL
+     * @param {string} title   Window title of the popout
+     */
+    showImage(src, title) {
+        const path = normalizeSrc(src);
+        ShareDialog.open({ mode: "show", previewUrl: path, imageTitle: title, resolvePath: () => path });
+    },
+
+    /**
+     * Pop an image up on other users' screens with Foundry's own image sharing.
+     * @param {string} path
+     * @param {object} [options]
+     * @param {string} [options.title]    Window title of the popout
+     * @param {string} [options.caption]
+     * @param {string[]} [options.users]  User IDs; everyone when omitted
+     */
+    show(path, { title, caption, users } = {}) {
+        foundry.documents.collections.Journal.showImage(normalizeSrc(path), { title, caption, users: users ?? [] });
+        // Preselect the same users next time
+        if (users) setSetting(SETTINGS.LAST_SHOW_TARGETS, users);
+    },
+
+    /**
      * Post an image to chat.
      * @param {string} path         Server path or web URL
      * @param {string} [caption]

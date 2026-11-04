@@ -12,6 +12,7 @@ export const SETTINGS = {
     CONTEXT_MENU_MODE: "contextMenuMode",
     CHAT_IMAGE_MAX_HEIGHT: "chatImageMaxHeight",
     LAST_WHISPER_TARGETS: "lastWhisperTargets",
+    LAST_SHOW_TARGETS: "lastShowTargets",
     DEBUG_LOGGING: "debugLogging"
 };
 
@@ -63,7 +64,9 @@ const DEFINITIONS = {
     },
     [SETTINGS.DEBUG_LOGGING]: { scope: "client", type: Boolean, default: false },
     // Remembers the last whisper recipients so the share dialog can preselect them
-    [SETTINGS.LAST_WHISPER_TARGETS]: { scope: "client", type: Array, default: [], config: false }
+    [SETTINGS.LAST_WHISPER_TARGETS]: { scope: "client", type: Array, default: [], config: false },
+    // Remembers the users last selected for "Show to Players"
+    [SETTINGS.LAST_SHOW_TARGETS]: { scope: "client", type: Array, default: [], config: false }
 };
 
 /** Cached setting values, kept current by each setting's onChange handler. */
