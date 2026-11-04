@@ -6,7 +6,6 @@
                placeholder="{{localize "NIKS-SHOW-AND-TELL.ShareDialog.CaptionPlaceholder"}}"
                aria-label="{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Caption"}}">
 
-        {{#if chooseRecipients}}
         <fieldset class="share-recipients">
             <legend>{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Recipients"}}</legend>
             <div class="recipient-picks">
@@ -29,14 +28,12 @@
                 {{/each}}
             </ul>
         </fieldset>
-        {{/if}}
 
         <p class="share-status" hidden></p>
     </div>
 
     <footer class="form-footer">
-        {{#each buttons}}
-        <button type="submit" value="{{value}}"><i class="{{icon}}" inert></i><span>{{label}}</span></button>
-        {{/each}}
+        <button type="submit" value="public"><i class="fa-solid fa-users" inert></i><span>{{localize "NIKS-SHOW-AND-TELL.ShareDialog.PostPublicly"}}</span></button>
+        <button type="submit" value="whisper"><i class="fa-solid fa-user-secret" inert></i><span>{{localize "NIKS-SHOW-AND-TELL.ShareDialog.Whisper"}}</span></button>
     </footer>
 </div>

@@ -1,5 +1,12 @@
 # Changelog
 
+## 14.15.0
+
+- The module settings are now grouped into sections: Sharing, Uploads, Compression and Your Preferences. Maximum Image Size is greyed out while compression is off.
+- Removed the setting **Choose Recipients When Sharing**. "Post to Chat" and pasted images now always open the share dialog with the recipient list. Press Enter in the dialog to post for everyone right away.
+- Removed the setting **WebP Compression Quality**. Compressed images always use quality 0.8, the previous default. To upload images in full quality, turn off **Compress Images**.
+- **Paste Images** now defaults to "Only in the chat input", so pasting on the canvas is left to Foundry and other modules. If you prefer pasting images from anywhere, switch it back to "Anywhere outside text fields" (per user). Players who already changed this setting keep their choice.
+
 ## 14.14.1
 
 - Removed the French, Spanish, Italian, Brazilian Portuguese, Japanese, Polish and Czech translations. They were machine-translated and never checked by a native speaker. Players who use Foundry in one of these languages now see this module in English. Translations by native speakers are welcome as an issue or pull request.

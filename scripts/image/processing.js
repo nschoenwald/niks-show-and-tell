@@ -3,6 +3,9 @@ import { getSetting, SETTINGS } from "../settings.js";
 import { isAnimated, sniffImageMime } from "./formats.js";
 import { absoluteUrl, isSameOrigin } from "./urls.js";
 
+/** WebP quality of compressed uploads: visibly lossless for screenshots and art at a fraction of the size. */
+const WEBP_QUALITY = 0.8;
+
 /**
  * Draw an image to a canvas and encode it. The canvas backing store (width × height × 4 bytes)
  * is released right away instead of waiting for garbage collection.
@@ -131,7 +134,7 @@ export async function prepareForUpload(file, { animated } = {}) {
     try {
         const { blob, resized } = await reencodeBlob(file, {
             type: "image/webp",
-            quality: getSetting(SETTINGS.WEBP_QUALITY) || 0.8,
+            quality: WEBP_QUALITY,
             maxDimension: Number(getSetting(SETTINGS.MAX_IMAGE_DIMENSION)) || 0
         });
         // A downscaled result is always used (it enforces the size limit); otherwise only when it is smaller

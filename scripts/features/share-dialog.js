@@ -6,8 +6,7 @@ import { Sharing } from "./sharing.js";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /**
- * The share dialog: image preview, caption and — with the "Choose Recipients" setting — the
- * recipient list with "Post Publicly" / "Whisper" buttons; otherwise a single post button.
+ * The share dialog: image preview, caption and the recipient list with "Post Publicly" / "Whisper" buttons.
  *
  * The dialog stays open until the image is posted, so a failed upload can be retried.
  * Only one share dialog is open at a time.
@@ -75,10 +74,9 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     /** @override */
     async _prepareContext(options) {
         const context = await super._prepareContext(options);
-        const chooseRecipients = getSetting(SETTINGS.CHOOSE_RECIPIENTS);
         const lastTargets = new Set(getSetting(SETTINGS.LAST_WHISPER_TARGETS) ?? []);
         // All other users, GMs included, so GMs can whisper each other. Connected users first.
-        const users = chooseRecipients ? game.users
+        const users = game.users
             .filter((u) => u !== game.user)
             .sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name, game.i18n.lang))
             .map((u) => ({
@@ -88,25 +86,12 @@ export class ShareDialog extends HandlebarsApplicationMixin(ApplicationV2) {
                 active: u.active,
                 color: u.color?.css ?? "#888888",
                 selected: lastTargets.has(u.id)
-            })) : [];
-
-        const buttons = chooseRecipients
-            ? [
-                { value: "public", icon: "fa-solid fa-users", label: localize("ShareDialog.PostPublicly") },
-                { value: "whisper", icon: "fa-solid fa-user-secret", label: localize("ShareDialog.Whisper") }
-            ]
-            : [{
-                value: "public",
-                icon: this.#needsUpload ? "fa-solid fa-cloud-arrow-up" : "fa-solid fa-comment",
-                label: localize(this.#needsUpload ? "ShareDialog.UploadAndPost" : "ShareDialog.Post")
-            }];
+            }));
 
         return Object.assign(context, {
             previewUrl: this.#previewUrl,
             caption: this.#caption,
-            chooseRecipients,
-            users,
-            buttons
+            users
         });
     }
 

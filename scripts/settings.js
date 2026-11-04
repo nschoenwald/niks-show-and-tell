@@ -1,13 +1,11 @@
 import { DEFAULT_UPLOAD_FOLDER, I18N_PREFIX, MODULE_ID } from "./constants.js";
 
 export const SETTINGS = {
-    CHOOSE_RECIPIENTS: "chooseRecipients",
     UPLOAD_LOCATION: "uploadLocation",
     UPLOAD_SUBFOLDER: "uploadSubfolder",
     GM_UPLOAD_RELAY: "gmUploadRelay",
     COMPRESS_IMAGES: "compressImages",
     MIN_ROLE: "minRole",
-    WEBP_QUALITY: "webpQuality",
     MAX_IMAGE_DIMENSION: "maxImageDimension",
     ENABLE_DRAG_DROP: "enableDragDrop",
     PASTE_MODE: "pasteMode",
@@ -17,27 +15,43 @@ export const SETTINGS = {
     DEBUG_LOGGING: "debugLogging"
 };
 
-/** Setting definitions in the order they appear in the settings window. */
+/**
+ * Sections of the settings window, each with a heading. World settings come first (GMs only see them),
+ * then the per-user settings. DEFINITIONS lists the settings in this order.
+ */
+const SECTIONS = {
+    Sharing: [SETTINGS.MIN_ROLE, SETTINGS.ENABLE_DRAG_DROP],
+    Uploads: [SETTINGS.UPLOAD_LOCATION, SETTINGS.UPLOAD_SUBFOLDER, SETTINGS.GM_UPLOAD_RELAY],
+    Compression: [SETTINGS.COMPRESS_IMAGES, SETTINGS.MAX_IMAGE_DIMENSION],
+    Personal: [SETTINGS.PASTE_MODE, SETTINGS.CONTEXT_MENU_MODE, SETTINGS.CHAT_IMAGE_MAX_HEIGHT, SETTINGS.DEBUG_LOGGING]
+};
+
+/** Settings that only apply while Compress Images is on, disabled in the settings window while it is off. */
+const COMPRESSION_OPTIONS = [SETTINGS.MAX_IMAGE_DIMENSION];
+
+/** Setting definitions in the order they appear in the settings window (see SECTIONS). */
 const DEFINITIONS = {
-    [SETTINGS.CHOOSE_RECIPIENTS]: { scope: "world", type: Boolean, default: true },
+    // Sharing
+    [SETTINGS.MIN_ROLE]: {
+        scope: "world", type: Number, default: 4,
+        // Core role labels, not module strings
+        coreChoices: { 1: "USER.RolePlayer", 2: "USER.RoleTrusted", 3: "USER.RoleAssistant", 4: "USER.RoleGamemaster" }
+    },
+    [SETTINGS.ENABLE_DRAG_DROP]: { scope: "world", type: Boolean, default: true },
+    // Uploads
     [SETTINGS.UPLOAD_LOCATION]: { scope: "world", type: String, filePicker: "folder", default: DEFAULT_UPLOAD_FOLDER },
     [SETTINGS.UPLOAD_SUBFOLDER]: {
         scope: "world", type: String, default: "none",
         choices: { none: "None", user: "User", month: "Month" }
     },
     [SETTINGS.GM_UPLOAD_RELAY]: { scope: "world", type: Boolean, default: false },
+    // Compression
     [SETTINGS.COMPRESS_IMAGES]: { scope: "world", type: Boolean, default: true },
-    [SETTINGS.MIN_ROLE]: {
-        scope: "world", type: Number, default: 4,
-        // Core role labels, not module strings
-        coreChoices: { 1: "USER.RolePlayer", 2: "USER.RoleTrusted", 3: "USER.RoleAssistant", 4: "USER.RoleGamemaster" }
-    },
-    [SETTINGS.WEBP_QUALITY]: { scope: "world", type: Number, range: { min: 0.1, max: 1, step: 0.1 }, default: 0.8 },
     [SETTINGS.MAX_IMAGE_DIMENSION]: { scope: "world", type: Number, range: { min: 0, max: 8192, step: 256 }, default: 0 },
-    [SETTINGS.ENABLE_DRAG_DROP]: { scope: "world", type: Boolean, default: true },
+    // Personal
     [SETTINGS.PASTE_MODE]: {
-        scope: "client", type: String, default: "anywhere",
-        choices: { anywhere: "Anywhere", chat: "Chat", off: "Off" }
+        scope: "client", type: String, default: "chat",
+        choices: { chat: "Chat", anywhere: "Anywhere", off: "Off" }
     },
     [SETTINGS.CONTEXT_MENU_MODE]: {
         scope: "client", type: String, default: "always",
@@ -47,9 +61,9 @@ const DEFINITIONS = {
         scope: "client", type: Number, range: { min: 0, max: 1000, step: 50 }, default: 300,
         onChange: (value) => applyChatImageMaxHeight(value)
     },
+    [SETTINGS.DEBUG_LOGGING]: { scope: "client", type: Boolean, default: false },
     // Remembers the last whisper recipients so the share dialog can preselect them
-    [SETTINGS.LAST_WHISPER_TARGETS]: { scope: "client", type: Array, default: [], config: false },
-    [SETTINGS.DEBUG_LOGGING]: { scope: "client", type: Boolean, default: false }
+    [SETTINGS.LAST_WHISPER_TARGETS]: { scope: "client", type: Array, default: [], config: false }
 };
 
 /** Cached setting values, kept current by each setting's onChange handler. */
@@ -97,6 +111,39 @@ export function registerSettings() {
             }
         });
     }
+    Hooks.on("renderSettingsConfig", decorateSettingsConfig);
+}
+
+/**
+ * Add section headings to this module's settings and disable the compression options while compression is off.
+ * Settings the user can't see (world settings for players) are not rendered, so a section without any rendered
+ * setting gets no heading.
+ * @param {foundry.applications.settings.SettingsConfig} application
+ * @param {HTMLElement} element
+ */
+function decorateSettingsConfig(application, element) {
+    const formGroup = (key) => element.querySelector(`[name="${MODULE_ID}.${key}"]`)?.closest(".form-group");
+    for (const [section, keys] of Object.entries(SECTIONS)) {
+        const first = keys.map(formGroup).find(Boolean);
+        if (!first || first.previousElementSibling?.dataset.niksShowAndTellSection) continue;
+        const heading = document.createElement("h4");
+        heading.className = "divider";
+        heading.dataset.niksShowAndTellSection = section;
+        heading.textContent = game.i18n.localize(`${I18N_PREFIX}.Settings.Section.${section}`);
+        first.before(heading);
+    }
+
+    const compress = element.querySelector(`[name="${MODULE_ID}.${SETTINGS.COMPRESS_IMAGES}"]`);
+    if (!compress) return;
+    const update = () => {
+        for (const key of COMPRESSION_OPTIONS) {
+            const input = element.querySelector(`[name="${MODULE_ID}.${key}"]`);
+            // Disabled inputs aren't submitted, and SettingsConfig skips settings missing from the form data
+            if (input) input.disabled = !compress.checked;
+        }
+    };
+    compress.addEventListener("change", update);
+    update();
 }
 
 /**

@@ -1,7 +1,7 @@
 import { HOOKS, MODULE_ID } from "../constants.js";
 import { fileToDataUrl, localize, log } from "../helpers.js";
 import { isLocalOnlyUrl, normalizeSrc, serverPath } from "../image/urls.js";
-import { getSetting, setSetting, SETTINGS } from "../settings.js";
+import { setSetting, SETTINGS } from "../settings.js";
 import { buildMessageContent } from "./chat-images.js";
 import { ShareDialog } from "./share-dialog.js";
 import { Uploads } from "./uploads.js";
@@ -12,7 +12,7 @@ import { Uploads } from "./uploads.js";
 export const Sharing = {
     /**
      * Share an image every user can load already: a path on this server or a web URL.
-     * Opens the share dialog, or posts right away when "Choose Recipients" is off.
+     * Opens the share dialog.
      * Images that only exist in this browser (data:/blob:) are uploaded first.
      * @param {string} src
      * @param {object} [options]
@@ -21,7 +21,6 @@ export const Sharing = {
     async shareImage(src, { caption = "" } = {}) {
         if (isLocalOnlyUrl(src)) return this.shareNewImage({ url: src });
         const path = normalizeSrc(src);
-        if (!getSetting(SETTINGS.CHOOSE_RECIPIENTS)) return this.post(path, caption);
         ShareDialog.open({ previewUrl: path, caption, resolvePath: () => path });
     },
 
