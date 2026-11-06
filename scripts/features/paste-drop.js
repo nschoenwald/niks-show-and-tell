@@ -83,8 +83,9 @@ async function handleTransfer(event, dt) {
 
     // Image URLs are only taken from the chat; elsewhere pasted text stays text
     const url = !contents.file && chatTarget ? contents.htmlUrl ?? contents.plainUrl : null;
-    // Decide synchronously: once the handler awaits, the browser has already inserted the pasted content
-    if (!contents.file && !url && !(contents.hasImageItem && chatTarget)) return;
+    // Decide synchronously: once the handler awaits, the browser has already inserted the pasted content.
+    // Outside the chat input nothing is inserted, so an announced image is always worth intercepting.
+    if (!contents.file && !url && !contents.hasImageItem) return;
     event.preventDefault();
     event.stopImmediatePropagation();
 
@@ -93,12 +94,17 @@ async function handleTransfer(event, dt) {
     const existing = [url, contents.htmlUrl].map((u) => serverPath(u)).find(Boolean);
     if (existing) return Sharing.shareNewImage({ url: existing });
     if (!Uploads.canUpload) return ui.notifications.warn(localize("Notifications.NoUploadPermission"));
-    if (url) return Sharing.shareNewImage({ url });
+    // A paste that announced an image which could not be read (the Chrome/Windows ghost file) tries
+    // the clipboard first: the copied HTML's URL often can't be downloaded, because it needs a
+    // login or the site blocks cross-origin requests (e.g. images copied from Notion).
+    const tryClipboardFirst = event.type === "paste" && contents.hasImageItem;
+    if (url && !tryClipboardFirst) return Sharing.shareNewImage({ url });
 
     const stopNotice = startBusyNotice();
     try {
         const file = await resolveFile(event, contents);
         if (file) return await Sharing.shareNewImage({ file });
+        if (url) return await Sharing.shareNewImage({ url });
         ui.notifications.warn(localize("Notifications.PasteFailed"));
     } catch (err) {
         log.error("Could not process the pasted or dropped image:", err);
@@ -142,7 +148,9 @@ function readTransfer(dt, chatTarget) {
     // HTML can be large (e.g. from Word).
     const html = (contents.file || chatTarget) ? dt.getData("text/html") : "";
     if (html?.includes("<img")) {
-        const src = new DOMParser().parseFromString(html, "text/html").querySelector("img[src]")?.src;
+        // The raw attribute, not .src: a relative src (as some web apps put on the clipboard) would
+        // resolve against Foundry's address and be mistaken for an image on this server.
+        const src = new DOMParser().parseFromString(html, "text/html").querySelector("img[src]")?.getAttribute("src")?.trim();
         if (src && /^https?:\/\//i.test(src)) contents.htmlUrl = src;
     }
 

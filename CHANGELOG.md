@@ -1,5 +1,10 @@
 # Changelog
 
+## 14.16.1
+
+- Fixed pasting images copied from some websites, such as Notion, in Chrome on Windows. The image now comes straight from your clipboard instead of being downloaded from the website, which often failed because the site requires a login or blocks downloads from other sites.
+- With **Paste Images** set to "Anywhere outside text fields", these images can now also be pasted outside the chat input.
+
 ## 14.16.0
 
 - **Show to Players** now opens a dialog where you choose who sees the image: everyone, or only selected users (with the same Players / GMs / None buttons as for whispers). Only users who are currently connected are listed, and the list updates when someone joins or leaves. You can also add a caption, which appears below the image. Your last selection is remembered. Press Enter to show the image to everyone right away.
