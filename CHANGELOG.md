@@ -1,5 +1,9 @@
 # Changelog
 
+## 14.17.0
+
+- The module is now available in French, reviewed by Kameleau. Thank you!
+
 ## 14.16.1
 
 - Fixed pasting images copied from some websites, such as Notion, in Chrome on Windows. The image now comes straight from your clipboard instead of being downloaded from the website, which often failed because the site requires a login or blocks downloads from other sites.
